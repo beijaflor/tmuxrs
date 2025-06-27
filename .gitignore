@@ -54,3 +54,7 @@ docs/book/
 .local/
 tmp/
 temp/
+
+# Added by cargo
+
+/target
