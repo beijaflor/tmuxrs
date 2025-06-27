@@ -23,25 +23,43 @@ pub enum WindowConfig {
 impl Config {
     /// Detect session name from current directory basename
     pub fn detect_session_name() -> Result<String> {
-        // TODO: Implement directory basename detection
-        Err(TmuxrsError::ConfigNotFound("Not implemented".to_string()))
+        let current_dir = std::env::current_dir()?;
+        let basename = current_dir
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| TmuxrsError::ConfigNotFound("Could not determine directory name".to_string()))?;
+        Ok(basename.to_string())
     }
     
     /// Get config file path for a session name
     pub fn get_config_file_path(session_name: &str) -> Result<PathBuf> {
-        // TODO: Implement config file path resolution
-        Err(TmuxrsError::ConfigNotFound("Not implemented".to_string()))
+        let home_dir = dirs::home_dir()
+            .ok_or_else(|| TmuxrsError::ConfigNotFound("Could not find home directory".to_string()))?;
+        
+        let config_dir = home_dir.join(".config").join("tmuxrs");
+        let config_file = config_dir.join(format!("{}.yml", session_name));
+        
+        Ok(config_file)
     }
     
     /// Load configuration for a session
     pub fn load(session_name: &str) -> Result<Config> {
-        // TODO: Implement config loading
-        Err(TmuxrsError::ConfigNotFound("Not implemented".to_string()))
+        let config_path = Self::get_config_file_path(session_name)?;
+        
+        if !config_path.exists() {
+            return Err(TmuxrsError::ConfigNotFound(format!(
+                "Configuration file not found: {}",
+                config_path.display()
+            )));
+        }
+        
+        Self::parse_file(&config_path)
     }
     
     /// Parse configuration from a YAML file
     pub fn parse_file(file_path: &Path) -> Result<Config> {
-        // TODO: Implement YAML parsing
-        Err(TmuxrsError::ConfigNotFound("Not implemented".to_string()))
+        let content = std::fs::read_to_string(file_path)?;
+        let config: Config = serde_yaml::from_str(&content)?;
+        Ok(config)
     }
 }
