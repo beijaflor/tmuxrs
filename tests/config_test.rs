@@ -102,7 +102,7 @@ windows:
     assert_eq!(loaded_config.windows.len(), 3);
     
     // Restore original directory
-    env::set_current_dir(original_dir).unwrap();
+    env::set_current_dir(&original_dir).unwrap();
 }
 
 #[test]
@@ -129,5 +129,5 @@ fn test_detect_session_name_different_directories() {
     }
     
     // Restore original directory
-    env::set_current_dir(original_dir).unwrap();
+    env::set_current_dir(&original_dir).unwrap();
 }
