@@ -4,10 +4,27 @@ mod error;
 mod session;
 mod tmux;
 
+use clap::Parser;
+use cli::{Args, Command};
 use error::Result;
 
 fn main() -> Result<()> {
-    println!("tmuxrs - A modern tmux session manager");
-    println!("Phase 0: Project structure initialized");
+    let args = Args::parse();
+    
+    match args.command {
+        Command::Start { name } => {
+            println!("Starting session: {:?}", name);
+            // TODO: Implement start command
+        }
+        Command::List => {
+            println!("Listing sessions");
+            // TODO: Implement list command
+        }
+        Command::Stop { name } => {
+            println!("Stopping session: {}", name);
+            // TODO: Implement stop command
+        }
+    }
+    
     Ok(())
 }
