@@ -21,10 +21,14 @@ pub enum WindowConfig {
 }
 
 impl Config {
-    /// Detect session name from current directory basename
-    pub fn detect_session_name() -> Result<String> {
-        let current_dir = std::env::current_dir()?;
-        let basename = current_dir
+    /// Detect session name from directory basename
+    /// If path is None, uses current directory
+    pub fn detect_session_name(path: Option<&Path>) -> Result<String> {
+        let dir = match path {
+            Some(p) => p.to_path_buf(),
+            None => std::env::current_dir()?,
+        };
+        let basename = dir
             .file_name()
             .and_then(|name| name.to_str())
             .ok_or_else(|| TmuxrsError::ConfigNotFound("Could not determine directory name".to_string()))?;

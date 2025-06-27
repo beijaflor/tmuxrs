@@ -1,4 +1,3 @@
-use std::env;
 use tempfile::TempDir;
 use tmuxrs::config::Config;
 use tmuxrs::error::TmuxrsError;
@@ -10,9 +9,7 @@ fn test_detect_session_name_from_directory() {
     let project_path = temp_dir.path().join("my-awesome-project");
     std::fs::create_dir(&project_path).unwrap();
     
-    env::set_current_dir(&project_path).unwrap();
-    
-    let session_name = Config::detect_session_name().unwrap();
+    let session_name = Config::detect_session_name(Some(&project_path)).unwrap();
     assert_eq!(session_name, "my-awesome-project");
 }
 
@@ -61,7 +58,7 @@ windows:
 #[test]
 fn test_configuration_discovery_integration() {
     // This test verifies the complete configuration discovery flow:
-    // 1. Change to a directory
+    // 1. Pass a directory path
     // 2. Detect session name from directory
     // 3. Resolve config path
     // 4. Load config if it exists
@@ -88,26 +85,18 @@ windows:
 "#;
     std::fs::write(&config_file, yaml_content).unwrap();
     
-    // Change to project directory
-    let original_dir = env::current_dir().unwrap();
-    env::set_current_dir(&project_dir).unwrap();
-    
     // Test the discovery flow
-    let detected_name = Config::detect_session_name().unwrap();
+    let detected_name = Config::detect_session_name(Some(&project_dir)).unwrap();
     assert_eq!(detected_name, "my-rust-project");
     
     // In real usage, we'd use dirs::home_dir(), but for testing we'll parse directly
     let loaded_config = Config::parse_file(&config_file).unwrap();
     assert_eq!(loaded_config.name, "my-rust-project");
     assert_eq!(loaded_config.windows.len(), 3);
-    
-    // Restore original directory
-    env::set_current_dir(&original_dir).unwrap();
 }
 
 #[test]
 fn test_detect_session_name_different_directories() {
-    let original_dir = env::current_dir().unwrap();
     let temp_dir = TempDir::new().unwrap();
     
     // Test various directory names
@@ -122,12 +111,18 @@ fn test_detect_session_name_different_directories() {
     for dir_name in test_cases {
         let test_dir = temp_dir.path().join(dir_name);
         std::fs::create_dir(&test_dir).unwrap();
-        env::set_current_dir(&test_dir).unwrap();
         
-        let detected = Config::detect_session_name().unwrap();
+        let detected = Config::detect_session_name(Some(&test_dir)).unwrap();
         assert_eq!(detected, dir_name, "Failed to detect session name for directory: {}", dir_name);
     }
+}
+
+#[test]
+fn test_detect_session_name_current_directory() {
+    // Test that passing None uses current directory
+    let current_dir = std::env::current_dir().unwrap();
+    let expected_name = current_dir.file_name().unwrap().to_str().unwrap();
     
-    // Restore original directory
-    env::set_current_dir(&original_dir).unwrap();
+    let detected = Config::detect_session_name(None).unwrap();
+    assert_eq!(detected, expected_name);
 }
