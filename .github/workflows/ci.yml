@@ -113,22 +113,3 @@ jobs:
         cargo install cargo-audit
         cargo audit
 
-  minimum-supported-rust-version:
-    name: Minimum Supported Rust Version
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install tmux
-      run: sudo apt-get update && sudo apt-get install -y tmux
-      
-    - name: Install Rust 1.70.0 (MSRV)
-      uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: 1.70.0
-        
-    - name: Build with MSRV
-      run: cargo build --verbose
-      
-    - name: Test with MSRV
-      run: cargo test --verbose

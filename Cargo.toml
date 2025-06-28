@@ -2,7 +2,6 @@
 name = "tmuxrs"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.70.0"
 authors = ["shootani <sho.otani@gmail.com>"]
 description = "A modern, Rust-based tmux session manager with centralized configuration and directory-aware execution. Drop-in replacement for tmuxinator."
 license = "MIT OR Apache-2.0"

@@ -191,6 +191,8 @@ tmuxrs start --no-attach        # Start without attaching
 
 ## 🔧 Development
 
+**Note:** tmuxrs is tested with the latest stable Rust version.
+
 ```bash
 # Clone and build
 git clone https://github.com/beijaflor/tmuxrs
