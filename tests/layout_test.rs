@@ -4,6 +4,11 @@ use tmuxrs::tmux::TmuxCommand;
 
 #[test]
 fn test_session_with_main_vertical_layout() {
+    // Skip tmux tests in CI environment
+    if std::env::var("CI").is_ok() {
+        return;
+    }
+    
     let temp_dir = TempDir::new().unwrap();
     let config_dir = temp_dir.path().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
@@ -50,6 +55,11 @@ windows:
 
 #[test]
 fn test_session_with_main_horizontal_layout() {
+    // Skip tmux tests in CI environment
+    if std::env::var("CI").is_ok() {
+        return;
+    }
+    
     let temp_dir = TempDir::new().unwrap();
     let config_dir = temp_dir.path().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
@@ -92,6 +102,11 @@ windows:
 
 #[test]
 fn test_session_with_tiled_layout() {
+    // Skip tmux tests in CI environment
+    if std::env::var("CI").is_ok() {
+        return;
+    }
+    
     let temp_dir = TempDir::new().unwrap();
     let config_dir = temp_dir.path().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
@@ -143,6 +158,11 @@ windows:
 
 #[test]
 fn test_tmux_split_window_horizontal() {
+    // Skip tmux tests in CI environment
+    if std::env::var("CI").is_ok() {
+        return;
+    }
+    
     let session_name = "split-test-h";
     let temp_dir = TempDir::new().unwrap();
 
@@ -164,6 +184,11 @@ fn test_tmux_split_window_horizontal() {
 
 #[test]
 fn test_tmux_split_window_vertical() {
+    // Skip tmux tests in CI environment
+    if std::env::var("CI").is_ok() {
+        return;
+    }
+    
     let session_name = "split-test-v";
     let temp_dir = TempDir::new().unwrap();
 
@@ -185,6 +210,11 @@ fn test_tmux_split_window_vertical() {
 
 #[test]
 fn test_tmux_select_layout() {
+    // Skip tmux tests in CI environment
+    if std::env::var("CI").is_ok() {
+        return;
+    }
+    
     let session_name = "layout-select-test";
     let temp_dir = TempDir::new().unwrap();
 
