@@ -1,0 +1,150 @@
+.TH TMUXRS 1 "June 2024" "tmuxrs 0.1.0" "User Commands"
+.SH NAME
+tmuxrs \- A modern tmux session manager with centralized configuration
+.SH SYNOPSIS
+.B tmuxrs
+[\fIOPTIONS\fR] \fICOMMAND\fR
+.SH DESCRIPTION
+.B tmuxrs
+is a modern, Rust-based tmux session manager with centralized configuration and directory-aware execution.
+It serves as a drop-in replacement for tmuxinator, providing the same functionality with improved performance
+and maintaining full compatibility with existing tmuxinator configurations.
+.PP
+All session configurations are stored in
+.IR ~/.config/tmuxrs/
+as YAML files. When run without arguments in a project directory, tmuxrs automatically detects
+and loads the appropriate configuration based on the directory's Git repository name.
+.SH COMMANDS
+.TP
+.B start \fR[\fINAME\fR]
+Start a tmux session. If no NAME is provided, tmuxrs will attempt to detect the appropriate
+session based on the current directory's Git repository name.
+.RS
+.TP
+.B \-\-no\-attach
+Start the session in detached mode without attaching to it
+.TP
+.B \-\-append
+Add windows to an existing session instead of creating a new one
+.RE
+.TP
+.B stop \fINAME\fR
+Stop (kill) a running tmux session
+.TP
+.B list
+List all available session configurations found in ~/.config/tmuxrs/
+.SH OPTIONS
+.TP
+.B \-h\fR, \fB\-\-help
+Print help information
+.TP
+.B \-V\fR, \fB\-\-version
+Print version information
+.SH CONFIGURATION
+tmuxrs uses YAML configuration files stored in
+.IR ~/.config/tmuxrs/ .
+Each file defines one session, with the filename (minus extension) serving as the session identifier.
+.PP
+Configuration files support the following structure:
+.PP
+.RS
+.nf
+name: myproject
+root: ~/code/myproject
+windows:
+  - editor:
+      layout: main-vertical
+      panes:
+        - vim
+        - rails server
+  - monitoring:
+      layout: tiled
+      panes:
+        - htop
+        - tail -f log/development.log
+.fi
+.RE
+.PP
+For simple windows without panes, use:
+.PP
+.RS
+.nf
+windows:
+  - editor: vim
+  - server: rails server
+.fi
+.RE
+.SH LAYOUTS
+The following tmux layouts are supported:
+.TP
+.B main-vertical
+Main pane on the left, others stacked vertically on the right
+.TP
+.B main-horizontal
+Main pane on top, others stacked horizontally below
+.TP
+.B tiled
+All panes arranged in a grid
+.TP
+.B even-horizontal
+All panes equal width
+.TP
+.B even-vertical
+All panes equal height
+.SH CONFIGURATION DISCOVERY
+tmuxrs uses the following logic to find configurations:
+.PP
+1. Check for .tmuxinator.yml in the current directory (compatibility mode)
+.br
+2. Use the Git repository name to find ~/.config/tmuxrs/<repo-name>.yml
+.br
+3. If explicitly named, use ~/.config/tmuxrs/<name>.yml
+.SH EXAMPLES
+.TP
+Start a session using directory detection:
+.B tmuxrs start
+.TP
+Start a specific session:
+.B tmuxrs start myproject
+.TP
+Start a session without attaching:
+.B tmuxrs start myproject --no-attach
+.TP
+List available sessions:
+.B tmuxrs list
+.TP
+Stop a session:
+.B tmuxrs stop myproject
+.SH FILES
+.TP
+.I ~/.config/tmuxrs/*.yml
+User session configuration files
+.TP
+.I .tmuxinator.yml
+Local project configuration (tmuxinator compatibility)
+.SH ENVIRONMENT
+.TP
+.B TMUX
+Set by tmux when inside a tmux session. tmuxrs uses this to detect if it should
+create a new session or attach to an existing one.
+.SH EXIT STATUS
+.TP
+.B 0
+Success
+.TP
+.B 1
+General error (configuration not found, tmux error, etc.)
+.SH COMPATIBILITY
+tmuxrs is designed as a drop-in replacement for tmuxinator. Existing tmuxinator
+configuration files can be used without modification.
+.SH SEE ALSO
+.BR tmux (1)
+.SH BUGS
+Report bugs at https://github.com/beijaflor/tmuxrs/issues
+.SH AUTHOR
+Written by beijaflor
+.SH COPYRIGHT
+Copyright © 2024 beijaflor. License: MIT OR Apache-2.0
+.br
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.

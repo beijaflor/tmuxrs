@@ -49,6 +49,10 @@ cargo install tmuxrs
 git clone https://github.com/beijaflor/tmuxrs
 cd tmuxrs
 cargo install --path .
+
+# Install man page (optional)
+sudo cp man/tmuxrs.1 /usr/local/share/man/man1/
+sudo mandb  # or makewhatis on some systems
 ```
 
 ### Basic Usage

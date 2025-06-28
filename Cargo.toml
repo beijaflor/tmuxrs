@@ -19,6 +19,7 @@ include = [
     "README.md",
     "CHANGELOG.md",
     "LICENSE-*",
+    "man/**/*",
 ]
 
 [[bin]]
