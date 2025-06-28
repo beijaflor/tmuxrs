@@ -29,7 +29,7 @@ impl TmuxCommand {
         let output = Command::new("tmux")
             .args(&self.args)
             .output()
-            .map_err(|e| TmuxrsError::TmuxError(format!("Failed to execute tmux: {}", e)))?;
+            .map_err(|e| TmuxrsError::TmuxError(format!("Failed to execute tmux: {e}")))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -48,11 +48,11 @@ impl TmuxCommand {
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .spawn()
-            .map_err(|e| TmuxrsError::TmuxError(format!("Failed to execute tmux: {}", e)))?;
+            .map_err(|e| TmuxrsError::TmuxError(format!("Failed to execute tmux: {e}")))?;
 
         let status = child
             .wait()
-            .map_err(|e| TmuxrsError::TmuxError(format!("Failed to wait for tmux: {}", e)))?;
+            .map_err(|e| TmuxrsError::TmuxError(format!("Failed to wait for tmux: {e}")))?;
 
         if !status.success() {
             return Err(TmuxrsError::TmuxError(format!(
@@ -120,7 +120,7 @@ impl TmuxCommand {
         Self::new()
             .arg("send-keys")
             .arg("-t")
-            .arg(format!("{}:{}", session_name, window_name))
+            .arg(format!("{session_name}:{window_name}"))
             .arg(keys)
             .arg("Enter")
             .execute()
@@ -150,7 +150,7 @@ impl TmuxCommand {
             .arg(if window_name.is_empty() {
                 session_name.to_string()
             } else {
-                format!("{}:{}", session_name, window_name)
+                format!("{session_name}:{window_name}")
             })
             .arg(command)
             .execute()
@@ -170,7 +170,7 @@ impl TmuxCommand {
             .arg(if window_name.is_empty() {
                 session_name.to_string()
             } else {
-                format!("{}:{}", session_name, window_name)
+                format!("{session_name}:{window_name}")
             })
             .arg(command)
             .execute()
@@ -185,7 +185,7 @@ impl TmuxCommand {
             .arg(if window_name.is_empty() {
                 session_name.to_string()
             } else {
-                format!("{}:{}", session_name, window_name)
+                format!("{session_name}:{window_name}")
             })
             .arg(layout)
             .execute()

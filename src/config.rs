@@ -56,7 +56,7 @@ impl Config {
         })?;
 
         let config_dir = home_dir.join(".config").join("tmuxrs");
-        let config_file = config_dir.join(format!("{}.yml", session_name));
+        let config_file = config_dir.join(format!("{session_name}.yml"));
 
         Ok(config_file)
     }

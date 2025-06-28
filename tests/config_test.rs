@@ -115,8 +115,7 @@ fn test_detect_session_name_different_directories() {
         let detected = Config::detect_session_name(Some(&test_dir)).unwrap();
         assert_eq!(
             detected, dir_name,
-            "Failed to detect session name for directory: {}",
-            dir_name
+            "Failed to detect session name for directory: {dir_name}"
         );
     }
 }

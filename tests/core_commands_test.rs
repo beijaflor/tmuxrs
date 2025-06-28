@@ -9,7 +9,7 @@ fn test_start_command_with_explicit_name() {
     if std::env::var("CI").is_ok() {
         return;
     }
-    
+
     let temp_dir = TempDir::new().unwrap();
     let config_dir = temp_dir.path().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
@@ -37,7 +37,7 @@ windows:
         false, // append = false
     );
 
-    assert!(result.is_ok(), "Failed to start session: {:?}", result);
+    assert!(result.is_ok(), "Failed to start session: {result:?}");
 
     // Verify session exists
     let exists = TmuxCommand::session_exists("test-project").unwrap();
@@ -85,8 +85,7 @@ windows:
 
     assert!(
         result.is_ok(),
-        "Failed to start session from directory: {:?}",
-        result
+        "Failed to start session from directory: {result:?}"
     );
 
     // Verify session exists
@@ -115,15 +114,14 @@ fn test_list_command() {
     ];
 
     for (name, _desc) in &configs {
-        let config_file = config_dir.join(format!("{}.yml", name));
+        let config_file = config_dir.join(format!("{name}.yml"));
         let yaml_content = format!(
             r#"
-name: {}
-root: ~/projects/{}
+name: {name}
+root: ~/projects/{name}
 windows:
-  - main: echo "Starting {}"
-"#,
-            name, name, name
+  - main: echo "Starting {name}"
+"#
         );
         std::fs::write(&config_file, yaml_content).unwrap();
     }
@@ -132,7 +130,7 @@ windows:
     let session_manager = SessionManager::new();
     let result = session_manager.list_configs(Some(&config_dir));
 
-    assert!(result.is_ok(), "Failed to list configs: {:?}", result);
+    assert!(result.is_ok(), "Failed to list configs: {result:?}");
 
     let configs_list = result.unwrap();
     assert_eq!(configs_list.len(), 3, "Should find 3 configurations");
@@ -176,7 +174,7 @@ windows:
     let session_manager = SessionManager::new();
     let result = session_manager.stop_session("stop-test");
 
-    assert!(result.is_ok(), "Failed to stop session: {:?}", result);
+    assert!(result.is_ok(), "Failed to stop session: {result:?}");
 
     // Verify session no longer exists
     let exists = TmuxCommand::session_exists("stop-test").unwrap();
@@ -215,7 +213,7 @@ windows:
         false, // attach = false (for test environment)
         false, // append = false
     );
-    assert!(result1.is_ok(), "Failed to create session: {:?}", result1);
+    assert!(result1.is_ok(), "Failed to create session: {result1:?}");
 
     // Verify session exists
     let exists = TmuxCommand::session_exists("attach-test").unwrap();
@@ -230,8 +228,7 @@ windows:
     );
     assert!(
         result2.is_err(),
-        "Should fail to attach to existing session in test environment: {:?}",
-        result2
+        "Should fail to attach to existing session in test environment: {result2:?}"
     );
 
     // Verify error message indicates attach failure

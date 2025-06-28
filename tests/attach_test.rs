@@ -8,7 +8,7 @@ fn test_attach_to_existing_session() {
     if std::env::var("CI").is_ok() {
         return;
     }
-    
+
     let session_name = "attach-test-existing";
     let temp_dir = TempDir::new().unwrap();
 
@@ -58,7 +58,7 @@ fn test_start_session_with_attach_flag() {
     if std::env::var("CI").is_ok() {
         return;
     }
-    
+
     let temp_dir = TempDir::new().unwrap();
     let config_dir = temp_dir.path().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
@@ -90,15 +90,11 @@ windows:
             assert!(
                 error_msg.contains("Failed to attach")
                     || error_msg.contains("but failed to attach"),
-                "Expected attach failure error, got: {}",
-                error_msg
+                "Expected attach failure error, got: {error_msg}"
             );
         }
         Ok(msg) => {
-            panic!(
-                "Expected attach to fail in test environment, but got success: {}",
-                msg
-            );
+            panic!("Expected attach to fail in test environment, but got success: {msg}");
         }
     }
 
@@ -139,11 +135,7 @@ windows:
         false, // append = false
     );
 
-    assert!(
-        result.is_ok(),
-        "Should create detached session: {:?}",
-        result
-    );
+    assert!(result.is_ok(), "Should create detached session: {result:?}");
 
     // Verify session exists
     assert!(TmuxCommand::session_exists("no-attach-test").unwrap());
@@ -192,8 +184,7 @@ windows:
 
     assert!(
         result.is_err(),
-        "Should fail to attach to existing session in test environment: {:?}",
-        result
+        "Should fail to attach to existing session in test environment: {result:?}"
     );
 
     // Verify error message indicates attach failure

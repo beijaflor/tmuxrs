@@ -6,8 +6,8 @@ fn main() {
     // 1. Test directory basename detection
     println!("Current directory: {:?}", std::env::current_dir().unwrap());
     match Config::detect_session_name(None) {
-        Ok(name) => println!("Detected session name: {}", name),
-        Err(e) => println!("Error detecting session name: {}", e),
+        Ok(name) => println!("Detected session name: {name}"),
+        Err(e) => println!("Error detecting session name: {e}"),
     }
 
     // 2. Test config file path resolution
@@ -15,7 +15,7 @@ fn main() {
     for session in &["tmuxrs", "my-project", "test-session"] {
         match Config::get_config_file_path(session) {
             Ok(path) => println!("  {} -> {}", session, path.display()),
-            Err(e) => println!("  {} -> Error: {}", session, e),
+            Err(e) => println!("  {session} -> Error: {e}"),
         }
     }
 
@@ -23,13 +23,13 @@ fn main() {
     println!("\nTrying to load config based on current directory:");
     match Config::detect_session_name(None) {
         Ok(session_name) => {
-            println!("Attempting to load config for session: {}", session_name);
+            println!("Attempting to load config for session: {session_name}");
             match Config::load(&session_name) {
-                Ok(config) => println!("Loaded config: {:?}", config),
-                Err(e) => println!("Error: {}", e),
+                Ok(config) => println!("Loaded config: {config:?}"),
+                Err(e) => println!("Error: {e}"),
             }
         }
-        Err(e) => println!("Error detecting session name: {}", e),
+        Err(e) => println!("Error detecting session name: {e}"),
     }
 
     // 4. Demonstrate detection with explicit path
@@ -37,10 +37,10 @@ fn main() {
     for path in &["/tmp", "/Users", "/"] {
         match std::path::Path::new(path).try_exists() {
             Ok(true) => match Config::detect_session_name(Some(std::path::Path::new(path))) {
-                Ok(name) => println!("  {} -> {}", path, name),
-                Err(e) => println!("  {} -> Error: {}", path, e),
+                Ok(name) => println!("  {path} -> {name}"),
+                Err(e) => println!("  {path} -> Error: {e}"),
             },
-            _ => println!("  {} -> Path doesn't exist", path),
+            _ => println!("  {path} -> Path doesn't exist"),
         }
     }
 }

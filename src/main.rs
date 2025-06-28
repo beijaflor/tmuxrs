@@ -29,7 +29,7 @@ fn main() -> Result<()> {
                 should_attach,
                 append,
             )?;
-            println!("{}", result);
+            println!("{result}");
         }
         Command::List => {
             let configs = session_manager.list_configs(None)?;
@@ -50,7 +50,7 @@ fn main() -> Result<()> {
         }
         Command::Stop { name } => {
             let result = session_manager.stop_session(&name)?;
-            println!("{}", result);
+            println!("{result}");
         }
     }
 

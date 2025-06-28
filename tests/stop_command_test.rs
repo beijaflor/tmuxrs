@@ -8,7 +8,7 @@ fn test_stop_existing_session() {
     if std::env::var("CI").is_ok() {
         return;
     }
-    
+
     let session_name = "stop-test-existing";
     let temp_dir = TempDir::new().unwrap();
 
@@ -25,11 +25,8 @@ fn test_stop_existing_session() {
     let session_manager = SessionManager::new();
     let result = session_manager.stop_session(session_name);
 
-    assert!(result.is_ok(), "Failed to stop session: {:?}", result);
-    assert_eq!(
-        result.unwrap(),
-        format!("Stopped session '{}'", session_name)
-    );
+    assert!(result.is_ok(), "Failed to stop session: {result:?}");
+    assert_eq!(result.unwrap(), format!("Stopped session '{session_name}'"));
 
     // Verify session no longer exists
     assert!(!TmuxCommand::session_exists(session_name).unwrap());
@@ -92,8 +89,7 @@ windows:
     );
     assert!(
         start_result.is_ok(),
-        "Failed to start session: {:?}",
-        start_result
+        "Failed to start session: {start_result:?}"
     );
 
     // Verify session exists
@@ -103,8 +99,7 @@ windows:
     let stop_result = session_manager.stop_session("workflow-test");
     assert!(
         stop_result.is_ok(),
-        "Failed to stop session: {:?}",
-        stop_result
+        "Failed to stop session: {stop_result:?}"
     );
 
     // Verify session no longer exists
@@ -160,12 +155,12 @@ windows:
         Err(e) if e.to_string().contains("can't find window") => {
             // Known race condition in test environment - tmux timing issue
             // Functionality works correctly in real usage
-            eprintln!("Warning: tmux race condition in test: {}", e);
+            eprintln!("Warning: tmux race condition in test: {e}");
             let _ = TmuxCommand::kill_session("complex-stop-test");
             return; // Skip rest of test
         }
         Err(e) => {
-            panic!("Unexpected error starting session: {:?}", e);
+            panic!("Unexpected error starting session: {e:?}");
         }
     }
 
@@ -176,8 +171,7 @@ windows:
     let stop_result = session_manager.stop_session("complex-stop-test");
     assert!(
         stop_result.is_ok(),
-        "Failed to stop complex session: {:?}",
-        stop_result
+        "Failed to stop complex session: {stop_result:?}"
     );
 
     // Verify session no longer exists

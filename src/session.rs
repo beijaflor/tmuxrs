@@ -45,25 +45,24 @@ impl SessionManager {
                     Ok(()) => {
                         // This line should never be reached in practice because
                         // successful attach takes over the terminal process
-                        return Ok(format!("Attached to existing session '{}'", session_name));
+                        return Ok(format!("Attached to existing session '{session_name}'"));
                     }
                     Err(err) => {
                         // Attach failed - could be no TTY, session doesn't exist, etc.
                         return Err(TmuxrsError::TmuxError(format!(
-                            "Failed to attach to session '{}': {}",
-                            session_name, err
+                            "Failed to attach to session '{session_name}': {err}"
                         )));
                     }
                 }
             } else {
-                return Ok(format!("Session '{}' already exists", session_name));
+                return Ok(format!("Session '{session_name}' already exists"));
             }
         }
 
         // Load configuration
         let config = if let Some(config_dir) = config_dir {
             // Load from custom config directory
-            let config_file = config_dir.join(format!("{}.yml", session_name));
+            let config_file = config_dir.join(format!("{session_name}.yml"));
             Config::parse_file(&config_file)?
         } else {
             Config::load(&session_name)?
@@ -120,21 +119,17 @@ impl SessionManager {
                 Ok(()) => {
                     // This line should never be reached in practice because
                     // successful attach takes over the terminal process
-                    Ok(format!(
-                        "Started and attached to session '{}'",
-                        session_name
-                    ))
+                    Ok(format!("Started and attached to session '{session_name}'"))
                 }
                 Err(err) => {
                     // Attach failed - provide helpful error message
                     Err(TmuxrsError::TmuxError(format!(
-                        "Started session '{}' but failed to attach: {}",
-                        session_name, err
+                        "Started session '{session_name}' but failed to attach: {err}"
                     )))
                 }
             }
         } else {
-            Ok(format!("Started detached session '{}'", session_name))
+            Ok(format!("Started detached session '{session_name}'"))
         }
     }
 
@@ -174,7 +169,7 @@ impl SessionManager {
             if path.is_file()
                 && path
                     .extension()
-                    .map_or(false, |ext| ext == "yml" || ext == "yaml")
+                    .is_some_and(|ext| ext == "yml" || ext == "yaml")
             {
                 match Config::parse_file(&path) {
                     Ok(config) => configs.push(config),
@@ -191,12 +186,11 @@ impl SessionManager {
         // Check if session exists first
         if !TmuxCommand::session_exists(name)? {
             return Err(TmuxrsError::TmuxError(format!(
-                "Session '{}' does not exist",
-                name
+                "Session '{name}' does not exist"
             )));
         }
 
         TmuxCommand::kill_session(name)?;
-        Ok(format!("Stopped session '{}'", name))
+        Ok(format!("Stopped session '{name}'"))
     }
 }

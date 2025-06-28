@@ -8,7 +8,7 @@ fn test_tmux_command_execution() {
     if std::env::var("CI").is_ok() {
         return;
     }
-    
+
     // Test basic tmux command execution
     let result = TmuxCommand::new().arg("list-sessions").execute();
 
@@ -20,7 +20,7 @@ fn test_tmux_command_execution() {
         Err(TmuxrsError::TmuxError(_)) => {
             // tmux command failed (expected if no sessions exist)
         }
-        Err(e) => panic!("Unexpected error type: {}", e),
+        Err(e) => panic!("Unexpected error type: {e}"),
     }
 }
 
@@ -50,7 +50,7 @@ fn test_create_session() {
 
     // Create session
     let result = TmuxCommand::new_session(session_name, temp_dir.path());
-    assert!(result.is_ok(), "Failed to create session: {:?}", result);
+    assert!(result.is_ok(), "Failed to create session: {result:?}");
 
     // Verify session exists
     let exists = TmuxCommand::session_exists(session_name).unwrap();
@@ -75,7 +75,7 @@ fn test_create_window() {
 
     // Create window
     let result = TmuxCommand::new_window(session_name, "test-window", None);
-    assert!(result.is_ok(), "Failed to create window: {:?}", result);
+    assert!(result.is_ok(), "Failed to create window: {result:?}");
 
     // Clean up
     let _ = TmuxCommand::kill_session(session_name);
@@ -99,7 +99,7 @@ fn test_send_keys() {
 
     // Send keys
     let result = TmuxCommand::send_keys(session_name, "test-window", "echo hello");
-    assert!(result.is_ok(), "Failed to send keys: {:?}", result);
+    assert!(result.is_ok(), "Failed to send keys: {result:?}");
 
     // Clean up
     let _ = TmuxCommand::kill_session(session_name);

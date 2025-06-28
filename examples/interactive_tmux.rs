@@ -42,8 +42,8 @@ fn check_session() {
     let name = name.trim();
 
     match TmuxCommand::session_exists(name) {
-        Ok(exists) => println!("Session '{}' exists: {}", name, exists),
-        Err(e) => println!("Error: {}", e),
+        Ok(exists) => println!("Session '{name}' exists: {exists}"),
+        Err(e) => println!("Error: {e}"),
     }
 }
 
@@ -56,8 +56,8 @@ fn create_session() {
 
     let current_dir = std::env::current_dir().unwrap();
     match TmuxCommand::new_session(name, &current_dir) {
-        Ok(_) => println!("✅ Session '{}' created successfully", name),
-        Err(e) => println!("❌ Failed to create session: {}", e),
+        Ok(_) => println!("✅ Session '{name}' created successfully"),
+        Err(e) => println!("❌ Failed to create session: {e}"),
     }
 }
 
@@ -75,8 +75,8 @@ fn create_window() {
     let window = window.trim();
 
     match TmuxCommand::new_window(session, window, None) {
-        Ok(_) => println!("✅ Window '{}' created successfully", window),
-        Err(e) => println!("❌ Failed to create window: {}", e),
+        Ok(_) => println!("✅ Window '{window}' created successfully"),
+        Err(e) => println!("❌ Failed to create window: {e}"),
     }
 }
 
@@ -101,7 +101,7 @@ fn send_keys() {
 
     match TmuxCommand::send_keys(session, window, command) {
         Ok(_) => println!("✅ Keys sent successfully"),
-        Err(e) => println!("❌ Failed to send keys: {}", e),
+        Err(e) => println!("❌ Failed to send keys: {e}"),
     }
 }
 
@@ -111,10 +111,10 @@ fn list_sessions() {
             if output.trim().is_empty() {
                 println!("No tmux sessions found");
             } else {
-                println!("Tmux sessions:\n{}", output);
+                println!("Tmux sessions:\n{output}");
             }
         }
-        Err(e) => println!("❌ Failed to list sessions: {}", e),
+        Err(e) => println!("❌ Failed to list sessions: {e}"),
     }
 }
 
@@ -126,7 +126,7 @@ fn kill_session() {
     let name = name.trim();
 
     match TmuxCommand::kill_session(name) {
-        Ok(_) => println!("✅ Session '{}' killed successfully", name),
-        Err(e) => println!("❌ Failed to kill session: {}", e),
+        Ok(_) => println!("✅ Session '{name}' killed successfully"),
+        Err(e) => println!("❌ Failed to kill session: {e}"),
     }
 }

@@ -8,7 +8,7 @@ fn test_session_with_main_vertical_layout() {
     if std::env::var("CI").is_ok() {
         return;
     }
-    
+
     let temp_dir = TempDir::new().unwrap();
     let config_dir = temp_dir.path().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
@@ -41,8 +41,7 @@ windows:
 
     assert!(
         result.is_ok(),
-        "Failed to start session with layout: {:?}",
-        result
+        "Failed to start session with layout: {result:?}"
     );
 
     // Verify session exists
@@ -59,7 +58,7 @@ fn test_session_with_main_horizontal_layout() {
     if std::env::var("CI").is_ok() {
         return;
     }
-    
+
     let temp_dir = TempDir::new().unwrap();
     let config_dir = temp_dir.path().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
@@ -90,8 +89,7 @@ windows:
 
     assert!(
         result.is_ok(),
-        "Failed to start session with horizontal layout: {:?}",
-        result
+        "Failed to start session with horizontal layout: {result:?}"
     );
 
     let exists = TmuxCommand::session_exists("horizontal-test").unwrap();
@@ -106,7 +104,7 @@ fn test_session_with_tiled_layout() {
     if std::env::var("CI").is_ok() {
         return;
     }
-    
+
     let temp_dir = TempDir::new().unwrap();
     let config_dir = temp_dir.path().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
@@ -146,10 +144,10 @@ windows:
         Err(e) if e.to_string().contains("can't find window") => {
             // Known race condition in test environment - tmux timing issue
             // Functionality works correctly in real usage
-            eprintln!("Warning: tmux race condition in test: {}", e);
+            eprintln!("Warning: tmux race condition in test: {e}");
         }
         Err(e) => {
-            panic!("Unexpected error starting session: {:?}", e);
+            panic!("Unexpected error starting session: {e:?}");
         }
     }
 
@@ -162,7 +160,7 @@ fn test_tmux_split_window_horizontal() {
     if std::env::var("CI").is_ok() {
         return;
     }
-    
+
     let session_name = "split-test-h";
     let temp_dir = TempDir::new().unwrap();
 
@@ -174,8 +172,7 @@ fn test_tmux_split_window_horizontal() {
     let result = TmuxCommand::split_window_horizontal(session_name, "", "echo 'second pane'");
     assert!(
         result.is_ok(),
-        "Failed to split window horizontally: {:?}",
-        result
+        "Failed to split window horizontally: {result:?}"
     );
 
     // Clean up
@@ -188,7 +185,7 @@ fn test_tmux_split_window_vertical() {
     if std::env::var("CI").is_ok() {
         return;
     }
-    
+
     let session_name = "split-test-v";
     let temp_dir = TempDir::new().unwrap();
 
@@ -200,8 +197,7 @@ fn test_tmux_split_window_vertical() {
     let result = TmuxCommand::split_window_vertical(session_name, "", "echo 'right pane'");
     assert!(
         result.is_ok(),
-        "Failed to split window vertically: {:?}",
-        result
+        "Failed to split window vertically: {result:?}"
     );
 
     // Clean up
@@ -214,7 +210,7 @@ fn test_tmux_select_layout() {
     if std::env::var("CI").is_ok() {
         return;
     }
-    
+
     let session_name = "layout-select-test";
     let temp_dir = TempDir::new().unwrap();
 
@@ -239,9 +235,7 @@ fn test_tmux_select_layout() {
         let result = TmuxCommand::select_layout(session_name, "", layout);
         assert!(
             result.is_ok(),
-            "Failed to select layout {}: {:?}",
-            layout,
-            result
+            "Failed to select layout {layout}: {result:?}"
         );
     }
 
