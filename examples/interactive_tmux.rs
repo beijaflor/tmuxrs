@@ -4,7 +4,7 @@ use tmuxrs::tmux::TmuxCommand;
 fn main() {
     println!("Interactive Tmux Testing");
     println!("========================");
-    
+
     loop {
         println!("\nChoose an option:");
         println!("1. Check if session exists");
@@ -14,13 +14,13 @@ fn main() {
         println!("5. List sessions");
         println!("6. Kill a session");
         println!("7. Exit");
-        
+
         print!("\nEnter choice (1-7): ");
         io::stdout().flush().unwrap();
-        
+
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
-        
+
         match input.trim() {
             "1" => check_session(),
             "2" => create_session(),
@@ -40,7 +40,7 @@ fn check_session() {
     let mut name = String::new();
     io::stdin().read_line(&mut name).unwrap();
     let name = name.trim();
-    
+
     match TmuxCommand::session_exists(name) {
         Ok(exists) => println!("Session '{}' exists: {}", name, exists),
         Err(e) => println!("Error: {}", e),
@@ -53,7 +53,7 @@ fn create_session() {
     let mut name = String::new();
     io::stdin().read_line(&mut name).unwrap();
     let name = name.trim();
-    
+
     let current_dir = std::env::current_dir().unwrap();
     match TmuxCommand::new_session(name, &current_dir) {
         Ok(_) => println!("✅ Session '{}' created successfully", name),
@@ -67,13 +67,13 @@ fn create_window() {
     let mut session = String::new();
     io::stdin().read_line(&mut session).unwrap();
     let session = session.trim();
-    
+
     print!("Enter window name: ");
     io::stdout().flush().unwrap();
     let mut window = String::new();
     io::stdin().read_line(&mut window).unwrap();
     let window = window.trim();
-    
+
     match TmuxCommand::new_window(session, window, None) {
         Ok(_) => println!("✅ Window '{}' created successfully", window),
         Err(e) => println!("❌ Failed to create window: {}", e),
@@ -86,19 +86,19 @@ fn send_keys() {
     let mut session = String::new();
     io::stdin().read_line(&mut session).unwrap();
     let session = session.trim();
-    
+
     print!("Enter window name: ");
     io::stdout().flush().unwrap();
     let mut window = String::new();
     io::stdin().read_line(&mut window).unwrap();
     let window = window.trim();
-    
+
     print!("Enter command to send: ");
     io::stdout().flush().unwrap();
     let mut command = String::new();
     io::stdin().read_line(&mut command).unwrap();
     let command = command.trim();
-    
+
     match TmuxCommand::send_keys(session, window, command) {
         Ok(_) => println!("✅ Keys sent successfully"),
         Err(e) => println!("❌ Failed to send keys: {}", e),
@@ -113,7 +113,7 @@ fn list_sessions() {
             } else {
                 println!("Tmux sessions:\n{}", output);
             }
-        },
+        }
         Err(e) => println!("❌ Failed to list sessions: {}", e),
     }
 }
@@ -124,7 +124,7 @@ fn kill_session() {
     let mut name = String::new();
     io::stdin().read_line(&mut name).unwrap();
     let name = name.trim();
-    
+
     match TmuxCommand::kill_session(name) {
         Ok(_) => println!("✅ Session '{}' killed successfully", name),
         Err(e) => println!("❌ Failed to kill session: {}", e),

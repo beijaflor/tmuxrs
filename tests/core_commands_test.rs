@@ -1,6 +1,4 @@
-use std::path::Path;
 use tempfile::TempDir;
-use tmuxrs::config::Config;
 use tmuxrs::session::SessionManager;
 use tmuxrs::tmux::TmuxCommand;
 
@@ -64,7 +62,11 @@ windows:
     let session_manager = SessionManager::new();
     let result = session_manager.start_session_from_directory(&project_dir, Some(&config_dir));
 
-    assert!(result.is_ok(), "Failed to start session from directory: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "Failed to start session from directory: {:?}",
+        result
+    );
 
     // Verify session exists
     let exists = TmuxCommand::session_exists("my-rust-app").unwrap();
@@ -183,7 +185,11 @@ windows:
 
     // Second call should detect existing session and not error
     let result2 = session_manager.start_session(Some("attach-test"), Some(&config_dir));
-    assert!(result2.is_ok(), "Failed to handle existing session: {:?}", result2);
+    assert!(
+        result2.is_ok(),
+        "Failed to handle existing session: {:?}",
+        result2
+    );
 
     // Clean up
     let _ = TmuxCommand::kill_session("attach-test");
