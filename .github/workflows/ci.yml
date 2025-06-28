@@ -29,11 +29,18 @@ jobs:
         
     - name: Install tmux (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
-      run: sudo apt-get update && sudo apt-get install -y tmux
+      run: |
+        sudo apt-get update && sudo apt-get install -y tmux
+        # Create a fake display for tmux in CI
+        export DISPLAY=:99.0
       
     - name: Install tmux (macOS)
       if: matrix.os == 'macOS-latest' 
-      run: brew install tmux
+      run: |
+        brew install tmux
+        # Ensure tmux can run in CI environment
+        tmux new-session -d -s test-session || true
+        tmux kill-session -t test-session || true
       
     - name: Cache cargo registry
       uses: actions/cache@v4
@@ -64,6 +71,9 @@ jobs:
 
     - name: Run tests
       run: cargo test --verbose
+      env:
+        # Help tmux work in CI environment
+        TMUX_TMPDIR: /tmp
 
   coverage:
     name: Coverage
