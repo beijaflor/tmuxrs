@@ -49,16 +49,29 @@ jobs:
       if: matrix.os == 'ubuntu-latest' || matrix.os == 'macOS-latest'
       run: strip target/release/${{ matrix.artifact_name }}
       
+    - name: Rename binary for release (Unix)
+      if: matrix.os != 'windows-latest'
+      run: |
+        mkdir -p release-assets
+        cp target/release/${{ matrix.artifact_name }} release-assets/${{ matrix.asset_name }}
+        
+    - name: Rename binary for release (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        mkdir release-assets
+        copy target\release\${{ matrix.artifact_name }} release-assets\${{ matrix.asset_name }}
+      
     - name: Upload binary to release
       uses: softprops/action-gh-release@v1
       with:
-        files: ./target/release/${{ matrix.artifact_name }}
-        name: ${{ matrix.asset_name }}
+        files: release-assets/${{ matrix.asset_name }}
+        fail_on_unmatched_files: true
 
   publish-cargo:
     name: Publish to Cargo
     runs-on: ubuntu-latest
     needs: build-and-release
+    if: ${{ success() }}
     steps:
     - uses: actions/checkout@v4
     
@@ -67,6 +80,9 @@ jobs:
       
     - name: Install tmux
       run: sudo apt-get update && sudo apt-get install -y tmux
+      
+    - name: Dry run first
+      run: cargo publish --dry-run --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
       
     - name: Publish to crates.io
       run: cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
