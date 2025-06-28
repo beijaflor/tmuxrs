@@ -17,6 +17,15 @@ pub enum Command {
     Start {
         /// Session name (optional, detects from directory if not provided)
         name: Option<String>,
+        /// Attach to session after creation or to existing session
+        #[arg(long, default_value = "true")]
+        attach: bool,
+        /// Do not attach to session (overrides --attach)
+        #[arg(long)]
+        no_attach: bool,
+        /// Add windows to existing session instead of creating new one
+        #[arg(long)]
+        append: bool,
     },
     /// List available session configurations
     List,

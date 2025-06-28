@@ -165,4 +165,14 @@ impl TmuxCommand {
             .arg(layout)
             .execute()
     }
+
+    /// Attach to a session
+    #[allow(dead_code)]
+    pub fn attach_session(session_name: &str) -> Result<String> {
+        Self::new()
+            .arg("attach-session")
+            .arg("-t")
+            .arg(session_name)
+            .execute()
+    }
 }

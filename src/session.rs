@@ -15,6 +15,18 @@ impl SessionManager {
 
     /// Start a session with optional explicit name
     pub fn start_session(&self, name: Option<&str>, config_dir: Option<&Path>) -> Result<String> {
+        // Use default behavior: attach=true, append=false
+        self.start_session_with_options(name, config_dir, true, false)
+    }
+
+    /// Start a session with full options control
+    pub fn start_session_with_options(
+        &self,
+        name: Option<&str>,
+        config_dir: Option<&Path>,
+        attach: bool,
+        append: bool,
+    ) -> Result<String> {
         let session_name = match name {
             Some(n) => n.to_string(),
             None => Config::detect_session_name(None)?,
@@ -22,7 +34,26 @@ impl SessionManager {
 
         // Check if session already exists
         if TmuxCommand::session_exists(&session_name)? {
-            return Ok(format!("Session '{}' already exists", session_name));
+            if append {
+                // TODO: Implement append functionality in Phase 2
+                return Err(TmuxrsError::TmuxError(
+                    "Append functionality not yet implemented".to_string(),
+                ));
+            } else if attach {
+                // Attach to existing session
+                match TmuxCommand::attach_session(&session_name) {
+                    Ok(_) => return Ok(format!("Attached to existing session '{}'", session_name)),
+                    Err(_) => {
+                        // Attach failed (probably no terminal), but session exists
+                        return Ok(format!(
+                            "Session '{}' exists (attach failed - no terminal)",
+                            session_name
+                        ));
+                    }
+                }
+            } else {
+                return Ok(format!("Session '{}' already exists", session_name));
+            }
         }
 
         // Load configuration
@@ -79,7 +110,24 @@ impl SessionManager {
             }
         }
 
-        Ok(format!("Started session '{}'", session_name))
+        // Handle attachment
+        if attach {
+            match TmuxCommand::attach_session(&session_name) {
+                Ok(_) => Ok(format!(
+                    "Started and attached to session '{}'",
+                    session_name
+                )),
+                Err(_) => {
+                    // Attach failed (probably no terminal), but session was created
+                    Ok(format!(
+                        "Started session '{}' (attach failed - no terminal)",
+                        session_name
+                    ))
+                }
+            }
+        } else {
+            Ok(format!("Started detached session '{}'", session_name))
+        }
     }
 
     /// Start a session detecting name from directory

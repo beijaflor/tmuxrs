@@ -41,3 +41,37 @@ fn test_stop_command_exists() {
         .success()
         .stdout(predicate::str::contains("Stop a tmux session"));
 }
+
+#[test]
+fn test_start_command_shows_attach_flags() {
+    let mut cmd = Command::cargo_bin("tmuxrs").unwrap();
+    cmd.arg("start")
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--attach"))
+        .stdout(predicate::str::contains("--no-attach"))
+        .stdout(predicate::str::contains("--append"));
+}
+
+#[test]
+fn test_start_with_no_attach_flag_parsing() {
+    let mut cmd = Command::cargo_bin("tmuxrs").unwrap();
+    cmd.arg("start")
+        .arg("nonexistent-session")
+        .arg("--no-attach")
+        .assert()
+        .failure() // Should fail because no config exists
+        .stderr(predicate::str::contains("Configuration file not found"));
+}
+
+#[test]
+fn test_start_with_append_flag_parsing() {
+    let mut cmd = Command::cargo_bin("tmuxrs").unwrap();
+    cmd.arg("start")
+        .arg("nonexistent-session")
+        .arg("--append")
+        .assert()
+        .failure() // Should fail because no config exists
+        .stderr(predicate::str::contains("Configuration file not found"));
+}

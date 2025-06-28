@@ -14,8 +14,21 @@ fn main() -> Result<()> {
     let session_manager = SessionManager::new();
 
     match args.command {
-        Command::Start { name } => {
-            let result = session_manager.start_session(name.as_deref(), None)?;
+        Command::Start {
+            name,
+            attach,
+            no_attach,
+            append,
+        } => {
+            // Determine final attach behavior: --no-attach overrides --attach
+            let should_attach = if no_attach { false } else { attach };
+
+            let result = session_manager.start_session_with_options(
+                name.as_deref(),
+                None,
+                should_attach,
+                append,
+            )?;
             println!("{}", result);
         }
         Command::List => {
