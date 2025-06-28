@@ -51,6 +51,31 @@ impl SessionManager {
                         TmuxCommand::new_window(&session_name, window_name, Some(command))?;
                     }
                 }
+                crate::config::WindowConfig::WithLayout { window } => {
+                    for (window_name, layout_config) in window {
+                        // Create the window with the first pane
+                        let first_pane = layout_config.panes.first().ok_or_else(|| {
+                            TmuxrsError::TmuxError(
+                                "Window layout must have at least one pane".to_string(),
+                            )
+                        })?;
+                        TmuxCommand::new_window(&session_name, window_name, Some(first_pane))?;
+
+                        // Add additional panes by splitting
+                        for pane_command in layout_config.panes.iter().skip(1) {
+                            TmuxCommand::split_window_horizontal(
+                                &session_name,
+                                window_name,
+                                pane_command,
+                            )?;
+                        }
+
+                        // Apply layout if specified
+                        if let Some(layout) = &layout_config.layout {
+                            TmuxCommand::select_layout(&session_name, window_name, layout)?;
+                        }
+                    }
+                }
             }
         }
 

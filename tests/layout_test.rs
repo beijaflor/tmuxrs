@@ -1,0 +1,197 @@
+use tempfile::TempDir;
+use tmuxrs::session::SessionManager;
+use tmuxrs::tmux::TmuxCommand;
+
+#[test]
+fn test_session_with_main_vertical_layout() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("tmuxrs");
+    std::fs::create_dir_all(&config_dir).unwrap();
+
+    // Create config with main-vertical layout
+    let config_file = config_dir.join("layout-test.yml");
+    let yaml_content = r#"
+name: layout-test
+root: /tmp
+windows:
+  - main:
+      layout: main-vertical
+      panes:
+        - vim
+        - rails server
+"#;
+    std::fs::write(&config_file, yaml_content).unwrap();
+
+    // Clean up any existing session
+    let _ = TmuxCommand::kill_session("layout-test");
+
+    // Start session
+    let session_manager = SessionManager::new();
+    let result = session_manager.start_session(Some("layout-test"), Some(&config_dir));
+
+    assert!(
+        result.is_ok(),
+        "Failed to start session with layout: {:?}",
+        result
+    );
+
+    // Verify session exists
+    let exists = TmuxCommand::session_exists("layout-test").unwrap();
+    assert!(exists, "Session should exist after creation");
+
+    // Clean up
+    let _ = TmuxCommand::kill_session("layout-test");
+}
+
+#[test]
+fn test_session_with_main_horizontal_layout() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("tmuxrs");
+    std::fs::create_dir_all(&config_dir).unwrap();
+
+    let config_file = config_dir.join("horizontal-test.yml");
+    let yaml_content = r#"
+name: horizontal-test
+root: /tmp
+windows:
+  - editor:
+      layout: main-horizontal
+      panes:
+        - vim src/main.rs
+        - cargo watch
+        - git status
+"#;
+    std::fs::write(&config_file, yaml_content).unwrap();
+
+    let _ = TmuxCommand::kill_session("horizontal-test");
+
+    let session_manager = SessionManager::new();
+    let result = session_manager.start_session(Some("horizontal-test"), Some(&config_dir));
+
+    assert!(
+        result.is_ok(),
+        "Failed to start session with horizontal layout: {:?}",
+        result
+    );
+
+    let exists = TmuxCommand::session_exists("horizontal-test").unwrap();
+    assert!(exists, "Session should exist after creation");
+
+    let _ = TmuxCommand::kill_session("horizontal-test");
+}
+
+#[test]
+fn test_session_with_tiled_layout() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_dir = temp_dir.path().join(".config").join("tmuxrs");
+    std::fs::create_dir_all(&config_dir).unwrap();
+
+    let config_file = config_dir.join("tiled-test.yml");
+    let yaml_content = r#"
+name: tiled-test
+root: /tmp
+windows:
+  - monitoring:
+      layout: tiled
+      panes:
+        - htop
+        - tail -f /var/log/system.log
+        - iostat 2
+        - netstat -i
+"#;
+    std::fs::write(&config_file, yaml_content).unwrap();
+
+    let _ = TmuxCommand::kill_session("tiled-test");
+
+    let session_manager = SessionManager::new();
+    let result = session_manager.start_session(Some("tiled-test"), Some(&config_dir));
+
+    assert!(
+        result.is_ok(),
+        "Failed to start session with tiled layout: {:?}",
+        result
+    );
+
+    let exists = TmuxCommand::session_exists("tiled-test").unwrap();
+    assert!(exists, "Session should exist after creation");
+
+    let _ = TmuxCommand::kill_session("tiled-test");
+}
+
+#[test]
+fn test_tmux_split_window_horizontal() {
+    let session_name = "split-test-h";
+    let temp_dir = TempDir::new().unwrap();
+
+    // Clean up and create session
+    let _ = TmuxCommand::kill_session(session_name);
+    TmuxCommand::new_session(session_name, temp_dir.path()).unwrap();
+
+    // Test horizontal split (use empty string to target the default window)
+    let result = TmuxCommand::split_window_horizontal(session_name, "", "echo 'second pane'");
+    assert!(
+        result.is_ok(),
+        "Failed to split window horizontally: {:?}",
+        result
+    );
+
+    // Clean up
+    let _ = TmuxCommand::kill_session(session_name);
+}
+
+#[test]
+fn test_tmux_split_window_vertical() {
+    let session_name = "split-test-v";
+    let temp_dir = TempDir::new().unwrap();
+
+    // Clean up and create session
+    let _ = TmuxCommand::kill_session(session_name);
+    TmuxCommand::new_session(session_name, temp_dir.path()).unwrap();
+
+    // Test vertical split (use empty string to target the default window)
+    let result = TmuxCommand::split_window_vertical(session_name, "", "echo 'right pane'");
+    assert!(
+        result.is_ok(),
+        "Failed to split window vertically: {:?}",
+        result
+    );
+
+    // Clean up
+    let _ = TmuxCommand::kill_session(session_name);
+}
+
+#[test]
+fn test_tmux_select_layout() {
+    let session_name = "layout-select-test";
+    let temp_dir = TempDir::new().unwrap();
+
+    // Clean up and create session
+    let _ = TmuxCommand::kill_session(session_name);
+    TmuxCommand::new_session(session_name, temp_dir.path()).unwrap();
+
+    // Add some splits to make layout meaningful (use empty string for default window)
+    TmuxCommand::split_window_horizontal(session_name, "", "echo 'pane 2'").unwrap();
+    TmuxCommand::split_window_vertical(session_name, "", "echo 'pane 3'").unwrap();
+
+    // Test selecting different layouts
+    let layouts = vec![
+        "main-vertical",
+        "main-horizontal",
+        "tiled",
+        "even-horizontal",
+        "even-vertical",
+    ];
+
+    for layout in layouts {
+        let result = TmuxCommand::select_layout(session_name, "", layout);
+        assert!(
+            result.is_ok(),
+            "Failed to select layout {}: {:?}",
+            layout,
+            result
+        );
+    }
+
+    // Clean up
+    let _ = TmuxCommand::kill_session(session_name);
+}

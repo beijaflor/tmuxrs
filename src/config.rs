@@ -18,6 +18,16 @@ pub enum WindowConfig {
         #[serde(flatten)]
         window: HashMap<String, String>,
     },
+    WithLayout {
+        #[serde(flatten)]
+        window: HashMap<String, WindowLayout>,
+    },
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct WindowLayout {
+    pub layout: Option<String>,
+    pub panes: Vec<String>,
 }
 
 impl Config {

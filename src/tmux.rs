@@ -110,4 +110,59 @@ impl TmuxCommand {
             .arg(session_name)
             .execute()
     }
+
+    /// Split window horizontally (side by side)
+    #[allow(dead_code)]
+    pub fn split_window_horizontal(
+        session_name: &str,
+        window_name: &str,
+        command: &str,
+    ) -> Result<String> {
+        Self::new()
+            .arg("split-window")
+            .arg("-h") // horizontal split (side by side)
+            .arg("-t")
+            .arg(if window_name.is_empty() {
+                session_name.to_string()
+            } else {
+                format!("{}:{}", session_name, window_name)
+            })
+            .arg(command)
+            .execute()
+    }
+
+    /// Split window vertically (above/below)
+    #[allow(dead_code)]
+    pub fn split_window_vertical(
+        session_name: &str,
+        window_name: &str,
+        command: &str,
+    ) -> Result<String> {
+        Self::new()
+            .arg("split-window")
+            .arg("-v") // vertical split (above/below)
+            .arg("-t")
+            .arg(if window_name.is_empty() {
+                session_name.to_string()
+            } else {
+                format!("{}:{}", session_name, window_name)
+            })
+            .arg(command)
+            .execute()
+    }
+
+    /// Select layout for a window
+    #[allow(dead_code)]
+    pub fn select_layout(session_name: &str, window_name: &str, layout: &str) -> Result<String> {
+        Self::new()
+            .arg("select-layout")
+            .arg("-t")
+            .arg(if window_name.is_empty() {
+                session_name.to_string()
+            } else {
+                format!("{}:{}", session_name, window_name)
+            })
+            .arg(layout)
+            .execute()
+    }
 }
