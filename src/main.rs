@@ -10,7 +10,7 @@ use error::Result;
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    
+
     match args.command {
         Command::Start { name } => {
             println!("Starting session: {:?}", name);
@@ -25,6 +25,6 @@ fn main() -> Result<()> {
             // TODO: Implement stop command
         }
     }
-    
+
     Ok(())
 }

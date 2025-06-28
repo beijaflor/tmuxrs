@@ -8,7 +8,7 @@ fn test_detect_session_name_from_directory() {
     let temp_dir = TempDir::new().unwrap();
     let project_path = temp_dir.path().join("my-awesome-project");
     std::fs::create_dir(&project_path).unwrap();
-    
+
     let session_name = Config::detect_session_name(Some(&project_path)).unwrap();
     assert_eq!(session_name, "my-awesome-project");
 }
@@ -16,7 +16,7 @@ fn test_detect_session_name_from_directory() {
 #[test]
 fn test_get_config_file_path() {
     let config_path = Config::get_config_file_path("test-session").unwrap();
-    
+
     // Should be ~/.config/tmuxrs/test-session.yml
     assert!(config_path.to_string_lossy().contains(".config/tmuxrs"));
     assert!(config_path.to_string_lossy().ends_with("test-session.yml"));
@@ -25,7 +25,7 @@ fn test_get_config_file_path() {
 #[test]
 fn test_load_config_file_not_found() {
     let result = Config::load("nonexistent-session");
-    
+
     match result {
         Err(TmuxrsError::ConfigNotFound(_)) => {
             // Expected error
@@ -38,7 +38,7 @@ fn test_load_config_file_not_found() {
 fn test_parse_yaml_config() {
     let temp_dir = TempDir::new().unwrap();
     let config_file = temp_dir.path().join("test.yml");
-    
+
     let yaml_content = r#"
 name: test-session
 root: ~/projects/test
@@ -46,9 +46,9 @@ windows:
   - editor: vim
   - server: rails server
 "#;
-    
+
     std::fs::write(&config_file, yaml_content).unwrap();
-    
+
     let config = Config::parse_file(&config_file).unwrap();
     assert_eq!(config.name, "test-session");
     assert_eq!(config.root, Some("~/projects/test".to_string()));
@@ -62,17 +62,17 @@ fn test_configuration_discovery_integration() {
     // 2. Detect session name from directory
     // 3. Resolve config path
     // 4. Load config if it exists
-    
+
     let temp_dir = TempDir::new().unwrap();
-    
+
     // Create a project directory
     let project_dir = temp_dir.path().join("my-rust-project");
     std::fs::create_dir(&project_dir).unwrap();
-    
+
     // Create a mock config directory structure
     let config_dir = temp_dir.path().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
-    
+
     // Create config file for the project
     let config_file = config_dir.join("my-rust-project.yml");
     let yaml_content = r#"
@@ -84,11 +84,11 @@ windows:
   - git: lazygit
 "#;
     std::fs::write(&config_file, yaml_content).unwrap();
-    
+
     // Test the discovery flow
     let detected_name = Config::detect_session_name(Some(&project_dir)).unwrap();
     assert_eq!(detected_name, "my-rust-project");
-    
+
     // In real usage, we'd use dirs::home_dir(), but for testing we'll parse directly
     let loaded_config = Config::parse_file(&config_file).unwrap();
     assert_eq!(loaded_config.name, "my-rust-project");
@@ -98,7 +98,7 @@ windows:
 #[test]
 fn test_detect_session_name_different_directories() {
     let temp_dir = TempDir::new().unwrap();
-    
+
     // Test various directory names
     let test_cases = vec![
         "web-app",
@@ -107,13 +107,17 @@ fn test_detect_session_name_different_directories() {
         "backend-api",
         "123-numbers",
     ];
-    
+
     for dir_name in test_cases {
         let test_dir = temp_dir.path().join(dir_name);
         std::fs::create_dir(&test_dir).unwrap();
-        
+
         let detected = Config::detect_session_name(Some(&test_dir)).unwrap();
-        assert_eq!(detected, dir_name, "Failed to detect session name for directory: {}", dir_name);
+        assert_eq!(
+            detected, dir_name,
+            "Failed to detect session name for directory: {}",
+            dir_name
+        );
     }
 }
 
@@ -122,7 +126,7 @@ fn test_detect_session_name_current_directory() {
     // Test that passing None uses current directory
     let current_dir = std::env::current_dir().unwrap();
     let expected_name = current_dir.file_name().unwrap().to_str().unwrap();
-    
+
     let detected = Config::detect_session_name(None).unwrap();
     assert_eq!(detected, expected_name);
 }

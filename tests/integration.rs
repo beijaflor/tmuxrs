@@ -27,7 +27,9 @@ fn test_list_command_exists() {
         .arg("--help")
         .assert()
         .success()
-        .stdout(predicate::str::contains("List available session configurations"));
+        .stdout(predicate::str::contains(
+            "List available session configurations",
+        ));
 }
 
 #[test]

@@ -58,3 +58,6 @@ temp/
 # Added by cargo
 
 /target
+
+# Don't ignore githooks
+!.githooks/

@@ -2,14 +2,14 @@ use tmuxrs::config::Config;
 
 fn main() {
     println!("Configuration Discovery Demo\n");
-    
+
     // 1. Test directory basename detection
     println!("Current directory: {:?}", std::env::current_dir().unwrap());
     match Config::detect_session_name(None) {
         Ok(name) => println!("Detected session name: {}", name),
         Err(e) => println!("Error detecting session name: {}", e),
     }
-    
+
     // 2. Test config file path resolution
     println!("\nConfig file paths:");
     for session in &["tmuxrs", "my-project", "test-session"] {
@@ -18,7 +18,7 @@ fn main() {
             Err(e) => println!("  {} -> Error: {}", session, e),
         }
     }
-    
+
     // 3. Test loading a config based on detected session name
     println!("\nTrying to load config based on current directory:");
     match Config::detect_session_name(None) {
@@ -31,17 +31,15 @@ fn main() {
         }
         Err(e) => println!("Error detecting session name: {}", e),
     }
-    
+
     // 4. Demonstrate detection with explicit path
     println!("\nDetecting session name from specific paths:");
     for path in &["/tmp", "/Users", "/"] {
         match std::path::Path::new(path).try_exists() {
-            Ok(true) => {
-                match Config::detect_session_name(Some(std::path::Path::new(path))) {
-                    Ok(name) => println!("  {} -> {}", path, name),
-                    Err(e) => println!("  {} -> Error: {}", path, e),
-                }
-            }
+            Ok(true) => match Config::detect_session_name(Some(std::path::Path::new(path))) {
+                Ok(name) => println!("  {} -> {}", path, name),
+                Err(e) => println!("  {} -> Error: {}", path, e),
+            },
             _ => println!("  {} -> Path doesn't exist", path),
         }
     }

@@ -48,6 +48,10 @@ cd tmuxrs
 mkdir -p src/{config,session,tmux}
 touch src/{cli,error}.rs
 touch src/{config,session,tmux}/mod.rs
+
+# Set up pre-commit hooks
+mkdir -p .githooks
+# Create pre-commit hook (see Development Setup section below)
 ```
 
 ### 2. Cargo.toml Setup
@@ -328,6 +332,29 @@ echo "Test: Stopping session..."
 cargo run -- stop test
 
 echo "=== All tests passed! ==="
+```
+
+## Development Setup
+
+### Pre-commit Hooks
+To ensure code quality, set up pre-commit hooks:
+
+```bash
+# Run the setup script
+./.githooks/setup.sh
+
+# Or manually configure
+git config core.hooksPath .githooks
+```
+
+The pre-commit hook will run:
+1. `cargo fmt -- --check` - Check code formatting
+2. `cargo clippy --all-targets -- -D warnings` - Lint code
+3. `cargo test` - Run all tests
+
+To bypass hooks in emergencies (not recommended):
+```bash
+git commit --no-verify
 ```
 
 ## Development Workflow
