@@ -70,8 +70,13 @@ windows:
 
     let session_manager = SessionManager::new();
 
-    // Start session
-    let start_result = session_manager.start_session(Some("workflow-test"), Some(&config_dir));
+    // Start session (detached for test environment)
+    let start_result = session_manager.start_session_with_options(
+        Some("workflow-test"),
+        Some(&config_dir),
+        false, // attach = false (for test environment)
+        false, // append = false
+    );
     assert!(
         start_result.is_ok(),
         "Failed to start session: {:?}",
@@ -122,8 +127,13 @@ windows:
 
     let session_manager = SessionManager::new();
 
-    // Start complex session
-    let start_result = session_manager.start_session(Some("complex-stop-test"), Some(&config_dir));
+    // Start complex session (detached for test environment)
+    let start_result = session_manager.start_session_with_options(
+        Some("complex-stop-test"),
+        Some(&config_dir),
+        false, // attach = false (for test environment)
+        false, // append = false
+    );
     assert!(
         start_result.is_ok(),
         "Failed to start complex session: {:?}",

@@ -42,13 +42,17 @@ impl SessionManager {
             } else if attach {
                 // Attach to existing session
                 match TmuxCommand::attach_session(&session_name) {
-                    Ok(_) => return Ok(format!("Attached to existing session '{}'", session_name)),
-                    Err(_) => {
-                        // Attach failed (probably no terminal), but session exists
-                        return Ok(format!(
-                            "Session '{}' exists (attach failed - no terminal)",
-                            session_name
-                        ));
+                    Ok(()) => {
+                        // This line should never be reached in practice because
+                        // successful attach takes over the terminal process
+                        return Ok(format!("Attached to existing session '{}'", session_name));
+                    }
+                    Err(err) => {
+                        // Attach failed - could be no TTY, session doesn't exist, etc.
+                        return Err(TmuxrsError::TmuxError(format!(
+                            "Failed to attach to session '{}': {}",
+                            session_name, err
+                        )));
                     }
                 }
             } else {
@@ -113,16 +117,20 @@ impl SessionManager {
         // Handle attachment
         if attach {
             match TmuxCommand::attach_session(&session_name) {
-                Ok(_) => Ok(format!(
-                    "Started and attached to session '{}'",
-                    session_name
-                )),
-                Err(_) => {
-                    // Attach failed (probably no terminal), but session was created
+                Ok(()) => {
+                    // This line should never be reached in practice because
+                    // successful attach takes over the terminal process
                     Ok(format!(
-                        "Started session '{}' (attach failed - no terminal)",
+                        "Started and attached to session '{}'",
                         session_name
                     ))
+                }
+                Err(err) => {
+                    // Attach failed - provide helpful error message
+                    Err(TmuxrsError::TmuxError(format!(
+                        "Started session '{}' but failed to attach: {}",
+                        session_name, err
+                    )))
                 }
             }
         } else {

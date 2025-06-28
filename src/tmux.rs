@@ -1,6 +1,6 @@
 use crate::error::{Result, TmuxrsError};
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 /// Wrapper for tmux command execution
 #[derive(Default)]
@@ -23,7 +23,7 @@ impl TmuxCommand {
         self
     }
 
-    /// Execute the tmux command
+    /// Execute the tmux command (non-interactive)
     #[allow(dead_code)]
     pub fn execute(self) -> Result<String> {
         let output = Command::new("tmux")
@@ -37,6 +37,31 @@ impl TmuxCommand {
         }
 
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    }
+
+    /// Execute tmux command interactively (inherits TTY for attach-session)
+    #[allow(dead_code)]
+    pub fn execute_interactive(self) -> Result<()> {
+        let mut child = Command::new("tmux")
+            .args(&self.args)
+            .stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()
+            .map_err(|e| TmuxrsError::TmuxError(format!("Failed to execute tmux: {}", e)))?;
+
+        let status = child
+            .wait()
+            .map_err(|e| TmuxrsError::TmuxError(format!("Failed to wait for tmux: {}", e)))?;
+
+        if !status.success() {
+            return Err(TmuxrsError::TmuxError(format!(
+                "tmux command failed with exit code: {}",
+                status.code().unwrap_or(-1)
+            )));
+        }
+
+        Ok(())
     }
 
     /// Check if a session exists
@@ -166,13 +191,13 @@ impl TmuxCommand {
             .execute()
     }
 
-    /// Attach to a session
+    /// Attach to a session (interactive)
     #[allow(dead_code)]
-    pub fn attach_session(session_name: &str) -> Result<String> {
+    pub fn attach_session(session_name: &str) -> Result<()> {
         Self::new()
             .arg("attach-session")
             .arg("-t")
             .arg(session_name)
-            .execute()
+            .execute_interactive()
     }
 }

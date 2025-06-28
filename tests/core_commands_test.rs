@@ -1,4 +1,5 @@
 use tempfile::TempDir;
+use tmuxrs::config::Config;
 use tmuxrs::session::SessionManager;
 use tmuxrs::tmux::TmuxCommand;
 
@@ -22,9 +23,14 @@ windows:
     // Clean up any existing session
     let _ = TmuxCommand::kill_session("test-project");
 
-    // Test starting with explicit name
+    // Test starting with explicit name (detached for test environment)
     let session_manager = SessionManager::new();
-    let result = session_manager.start_session(Some("test-project"), Some(&config_dir));
+    let result = session_manager.start_session_with_options(
+        Some("test-project"),
+        Some(&config_dir),
+        false, // attach = false (for test environment)
+        false, // append = false
+    );
 
     assert!(result.is_ok(), "Failed to start session: {:?}", result);
 
@@ -60,7 +66,13 @@ windows:
 
     // Test starting without explicit name (should detect from directory)
     let session_manager = SessionManager::new();
-    let result = session_manager.start_session_from_directory(&project_dir, Some(&config_dir));
+    let session_name = Config::detect_session_name(Some(&project_dir)).unwrap();
+    let result = session_manager.start_session_with_options(
+        Some(&session_name),
+        Some(&config_dir),
+        false, // attach = false (for test environment)
+        false, // append = false
+    );
 
     assert!(
         result.is_ok(),
@@ -175,21 +187,37 @@ windows:
 
     let session_manager = SessionManager::new();
 
-    // First call should create the session
-    let result1 = session_manager.start_session(Some("attach-test"), Some(&config_dir));
+    // First call should create the session (detached for test environment)
+    let result1 = session_manager.start_session_with_options(
+        Some("attach-test"),
+        Some(&config_dir),
+        false, // attach = false (for test environment)
+        false, // append = false
+    );
     assert!(result1.is_ok(), "Failed to create session: {:?}", result1);
 
     // Verify session exists
     let exists = TmuxCommand::session_exists("attach-test").unwrap();
     assert!(exists, "Session should exist after creation");
 
-    // Second call should detect existing session and not error
-    let result2 = session_manager.start_session(Some("attach-test"), Some(&config_dir));
+    // Second call should detect existing session and try to attach (fails in test env)
+    let result2 = session_manager.start_session_with_options(
+        Some("attach-test"),
+        Some(&config_dir),
+        true,  // attach = true (to test existing session attach behavior)
+        false, // append = false
+    );
     assert!(
-        result2.is_ok(),
-        "Failed to handle existing session: {:?}",
+        result2.is_err(),
+        "Should fail to attach to existing session in test environment: {:?}",
         result2
     );
+
+    // Verify error message indicates attach failure
+    assert!(result2
+        .unwrap_err()
+        .to_string()
+        .contains("Failed to attach"));
 
     // Clean up
     let _ = TmuxCommand::kill_session("attach-test");

@@ -25,9 +25,14 @@ windows:
     // Clean up any existing session
     let _ = TmuxCommand::kill_session("layout-test");
 
-    // Start session
+    // Start session (detached for test environment)
     let session_manager = SessionManager::new();
-    let result = session_manager.start_session(Some("layout-test"), Some(&config_dir));
+    let result = session_manager.start_session_with_options(
+        Some("layout-test"),
+        Some(&config_dir),
+        false, // attach = false (for test environment)
+        false, // append = false
+    );
 
     assert!(
         result.is_ok(),
@@ -66,7 +71,12 @@ windows:
     let _ = TmuxCommand::kill_session("horizontal-test");
 
     let session_manager = SessionManager::new();
-    let result = session_manager.start_session(Some("horizontal-test"), Some(&config_dir));
+    let result = session_manager.start_session_with_options(
+        Some("horizontal-test"),
+        Some(&config_dir),
+        false, // attach = false (for test environment)
+        false, // append = false
+    );
 
     assert!(
         result.is_ok(),
@@ -104,7 +114,12 @@ windows:
     let _ = TmuxCommand::kill_session("tiled-test");
 
     let session_manager = SessionManager::new();
-    let result = session_manager.start_session(Some("tiled-test"), Some(&config_dir));
+    let result = session_manager.start_session_with_options(
+        Some("tiled-test"),
+        Some(&config_dir),
+        false, // attach = false (for test environment)
+        false, // append = false
+    );
 
     assert!(
         result.is_ok(),

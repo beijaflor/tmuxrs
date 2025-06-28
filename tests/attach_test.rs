@@ -16,11 +16,11 @@ fn test_attach_to_existing_session() {
     // Test attaching to the session
     let result = TmuxCommand::attach_session(session_name);
 
-    // Note: attach_session will fail in test environment since there's no terminal
-    // We're testing that the command is properly formatted
+    // Note: attach_session will fail in test environment since there's no TTY inheritance in tests
+    // We're testing that the command is properly formatted and executed
     assert!(
         result.is_err(),
-        "Attach should fail in test environment but command should be valid"
+        "Attach should fail in test environment due to no TTY inheritance"
     );
 
     // Clean up
@@ -69,12 +69,24 @@ windows:
         false, // append = false
     );
 
-    // Should create session (attach will fail in test env but that's expected)
-    assert!(
-        result.is_ok(),
-        "Should create session even if attach fails in test: {:?}",
-        result
-    );
+    // Should create session but fail to attach in test environment (no TTY)
+    match result {
+        Err(error) => {
+            let error_msg = error.to_string();
+            assert!(
+                error_msg.contains("Failed to attach")
+                    || error_msg.contains("but failed to attach"),
+                "Expected attach failure error, got: {}",
+                error_msg
+            );
+        }
+        Ok(msg) => {
+            panic!(
+                "Expected attach to fail in test environment, but got success: {}",
+                msg
+            );
+        }
+    }
 
     // Verify session exists
     assert!(TmuxCommand::session_exists("attach-flag-test").unwrap());
@@ -148,7 +160,7 @@ windows:
         false, // append = false
     );
 
-    // Try to start again with attach=true (should attach to existing)
+    // Try to start again with attach=true (should fail to attach in test env)
     let result = session_manager.start_session_with_options(
         Some("existing-attach-test"),
         Some(&config_dir),
@@ -157,10 +169,13 @@ windows:
     );
 
     assert!(
-        result.is_ok(),
-        "Should handle existing session gracefully: {:?}",
+        result.is_err(),
+        "Should fail to attach to existing session in test environment: {:?}",
         result
     );
+
+    // Verify error message indicates attach failure
+    assert!(result.unwrap_err().to_string().contains("Failed to attach"));
 
     // Clean up
     let _ = TmuxCommand::kill_session("existing-attach-test");
