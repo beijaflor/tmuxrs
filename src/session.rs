@@ -13,18 +13,17 @@ impl SessionManager {
         Self
     }
 
-    /// Expand tilde (~) in paths to actual home directory
-    fn expand_tilde(path: &str) -> PathBuf {
-        if path.starts_with("~/") || path == "~" {
-            if let Some(home) = dirs::home_dir() {
-                if path == "~" {
-                    return home;
-                } else {
-                    return home.join(&path[2..]);
-                }
+    /// Expand tilde (~) and environment variables in paths using shellexpand
+    fn expand_path(path: &str) -> Result<PathBuf> {
+        // Try full expansion first (handles both tilde and environment variables)
+        match shellexpand::full(path) {
+            Ok(expanded) => Ok(PathBuf::from(expanded.as_ref())),
+            Err(_) => {
+                // Fallback: try basic tilde expansion only
+                let expanded = shellexpand::tilde(path);
+                Ok(PathBuf::from(expanded.as_ref()))
             }
         }
-        PathBuf::from(path)
     }
 
     /// Start a session with optional explicit name
@@ -84,7 +83,7 @@ impl SessionManager {
 
         // Create session
         let root_dir = config.root.as_deref().unwrap_or("~");
-        let root_path = Self::expand_tilde(root_dir);
+        let root_path = Self::expand_path(root_dir)?;
         TmuxCommand::new_session(&session_name, &root_path)?;
 
         // Create windows
