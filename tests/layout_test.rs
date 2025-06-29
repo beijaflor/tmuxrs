@@ -169,7 +169,7 @@ fn test_tmux_split_window_horizontal() {
     TmuxCommand::new_session(session_name, temp_dir.path()).unwrap();
 
     // Test horizontal split (use empty string to target the default window)
-    let result = TmuxCommand::split_window_horizontal(session_name, "", "echo 'second pane'");
+    let result = TmuxCommand::split_window_horizontal(session_name, "", "echo 'second pane'", None);
     assert!(
         result.is_ok(),
         "Failed to split window horizontally: {result:?}"
@@ -194,7 +194,7 @@ fn test_tmux_split_window_vertical() {
     TmuxCommand::new_session(session_name, temp_dir.path()).unwrap();
 
     // Test vertical split (use empty string to target the default window)
-    let result = TmuxCommand::split_window_vertical(session_name, "", "echo 'right pane'");
+    let result = TmuxCommand::split_window_vertical(session_name, "", "echo 'right pane'", None);
     assert!(
         result.is_ok(),
         "Failed to split window vertically: {result:?}"
@@ -219,8 +219,8 @@ fn test_tmux_select_layout() {
     TmuxCommand::new_session(session_name, temp_dir.path()).unwrap();
 
     // Add some splits to make layout meaningful (use empty string for default window)
-    TmuxCommand::split_window_horizontal(session_name, "", "echo 'pane 2'").unwrap();
-    TmuxCommand::split_window_vertical(session_name, "", "echo 'pane 3'").unwrap();
+    TmuxCommand::split_window_horizontal(session_name, "", "echo 'pane 2'", None).unwrap();
+    TmuxCommand::split_window_vertical(session_name, "", "echo 'pane 3'", None).unwrap();
 
     // Test selecting different layouts
     let layouts = vec![

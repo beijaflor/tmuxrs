@@ -78,11 +78,21 @@ impl SessionManager {
             match window_config {
                 crate::config::WindowConfig::Simple(command) => {
                     let window_name = format!("window-{}", index + 1);
-                    TmuxCommand::new_window(&session_name, &window_name, Some(command))?;
+                    TmuxCommand::new_window(
+                        &session_name,
+                        &window_name,
+                        Some(command),
+                        Some(root_path),
+                    )?;
                 }
                 crate::config::WindowConfig::Complex { window } => {
                     for (window_name, command) in window {
-                        TmuxCommand::new_window(&session_name, window_name, Some(command))?;
+                        TmuxCommand::new_window(
+                            &session_name,
+                            window_name,
+                            Some(command),
+                            Some(root_path),
+                        )?;
                     }
                 }
                 crate::config::WindowConfig::WithLayout { window } => {
@@ -93,7 +103,12 @@ impl SessionManager {
                                 "Window layout must have at least one pane".to_string(),
                             )
                         })?;
-                        TmuxCommand::new_window(&session_name, window_name, Some(first_pane))?;
+                        TmuxCommand::new_window(
+                            &session_name,
+                            window_name,
+                            Some(first_pane),
+                            Some(root_path),
+                        )?;
 
                         // Add additional panes by splitting
                         for pane_command in layout_config.panes.iter().skip(1) {
@@ -101,6 +116,7 @@ impl SessionManager {
                                 &session_name,
                                 window_name,
                                 pane_command,
+                                Some(root_path),
                             )?;
                         }
 
