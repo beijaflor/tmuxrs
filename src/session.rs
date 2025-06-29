@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::error::{Result, TmuxrsError};
 use crate::tmux::TmuxCommand;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Session manager for tmuxrs
 #[derive(Default)]
@@ -11,6 +11,20 @@ impl SessionManager {
     /// Create a new session manager
     pub fn new() -> Self {
         Self
+    }
+
+    /// Expand tilde (~) in paths to actual home directory
+    fn expand_tilde(path: &str) -> PathBuf {
+        if path.starts_with("~/") || path == "~" {
+            if let Some(home) = dirs::home_dir() {
+                if path == "~" {
+                    return home;
+                } else {
+                    return home.join(&path[2..]);
+                }
+            }
+        }
+        PathBuf::from(path)
     }
 
     /// Start a session with optional explicit name
@@ -70,8 +84,8 @@ impl SessionManager {
 
         // Create session
         let root_dir = config.root.as_deref().unwrap_or("~");
-        let root_path = Path::new(root_dir);
-        TmuxCommand::new_session(&session_name, root_path)?;
+        let root_path = Self::expand_tilde(root_dir);
+        TmuxCommand::new_session(&session_name, &root_path)?;
 
         // Create windows
         for (index, window_config) in config.windows.iter().enumerate() {
@@ -82,7 +96,7 @@ impl SessionManager {
                         &session_name,
                         &window_name,
                         Some(command),
-                        Some(root_path),
+                        Some(&root_path),
                     )?;
                 }
                 crate::config::WindowConfig::Complex { window } => {
@@ -91,7 +105,7 @@ impl SessionManager {
                             &session_name,
                             window_name,
                             Some(command),
-                            Some(root_path),
+                            Some(&root_path),
                         )?;
                     }
                 }
@@ -107,7 +121,7 @@ impl SessionManager {
                             &session_name,
                             window_name,
                             Some(first_pane),
-                            Some(root_path),
+                            Some(&root_path),
                         )?;
 
                         // Add additional panes by splitting
@@ -116,7 +130,7 @@ impl SessionManager {
                                 &session_name,
                                 window_name,
                                 pane_command,
-                                Some(root_path),
+                                Some(&root_path),
                             )?;
                         }
 
