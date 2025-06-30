@@ -99,6 +99,7 @@ impl TmuxCommand {
         session_name: &str,
         window_name: &str,
         command: Option<&str>,
+        working_dir: Option<&Path>,
     ) -> Result<String> {
         let mut cmd = Self::new()
             .arg("new-window")
@@ -106,6 +107,11 @@ impl TmuxCommand {
             .arg(session_name)
             .arg("-n")
             .arg(window_name);
+
+        // Add working directory if provided
+        if let Some(dir) = working_dir {
+            cmd = cmd.arg("-c").arg(dir.to_string_lossy().as_ref());
+        }
 
         if let Some(cmd_str) = command {
             cmd = cmd.arg(cmd_str);
@@ -142,8 +148,9 @@ impl TmuxCommand {
         session_name: &str,
         window_name: &str,
         command: &str,
+        working_dir: Option<&Path>,
     ) -> Result<String> {
-        Self::new()
+        let mut cmd = Self::new()
             .arg("split-window")
             .arg("-h") // horizontal split (side by side)
             .arg("-t")
@@ -151,9 +158,14 @@ impl TmuxCommand {
                 session_name.to_string()
             } else {
                 format!("{session_name}:{window_name}")
-            })
-            .arg(command)
-            .execute()
+            });
+
+        // Add working directory if provided
+        if let Some(dir) = working_dir {
+            cmd = cmd.arg("-c").arg(dir.to_string_lossy().as_ref());
+        }
+
+        cmd.arg(command).execute()
     }
 
     /// Split window vertically (above/below)
@@ -162,8 +174,9 @@ impl TmuxCommand {
         session_name: &str,
         window_name: &str,
         command: &str,
+        working_dir: Option<&Path>,
     ) -> Result<String> {
-        Self::new()
+        let mut cmd = Self::new()
             .arg("split-window")
             .arg("-v") // vertical split (above/below)
             .arg("-t")
@@ -171,9 +184,14 @@ impl TmuxCommand {
                 session_name.to_string()
             } else {
                 format!("{session_name}:{window_name}")
-            })
-            .arg(command)
-            .execute()
+            });
+
+        // Add working directory if provided
+        if let Some(dir) = working_dir {
+            cmd = cmd.arg("-c").arg(dir.to_string_lossy().as_ref());
+        }
+
+        cmd.arg(command).execute()
     }
 
     /// Select layout for a window

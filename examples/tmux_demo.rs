@@ -35,7 +35,7 @@ fn main() {
 
     // 4. Create a new window
     println!("\n4. Creating window 'editor'...");
-    match TmuxCommand::new_window(session_name, "editor", None) {
+    match TmuxCommand::new_window(session_name, "editor", None, None) {
         Ok(_) => println!("   ✅ Window created successfully"),
         Err(e) => println!("   ❌ Failed to create window: {e}"),
     }
@@ -49,7 +49,7 @@ fn main() {
 
     // 6. Create another window with a command
     println!("\n6. Creating window 'server' with a command...");
-    match TmuxCommand::new_window(session_name, "server", Some("htop")) {
+    match TmuxCommand::new_window(session_name, "server", Some("htop"), None) {
         Ok(_) => println!("   ✅ Server window created with htop"),
         Err(e) => println!("   ❌ Failed to create server window: {e}"),
     }

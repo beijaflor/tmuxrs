@@ -74,7 +74,7 @@ fn test_create_window() {
     TmuxCommand::new_session(session_name, temp_dir.path()).unwrap();
 
     // Create window
-    let result = TmuxCommand::new_window(session_name, "test-window", None);
+    let result = TmuxCommand::new_window(session_name, "test-window", None, None);
     assert!(result.is_ok(), "Failed to create window: {result:?}");
 
     // Clean up
@@ -95,7 +95,7 @@ fn test_send_keys() {
     TmuxCommand::new_session(session_name, temp_dir.path()).unwrap();
 
     // Create window first
-    TmuxCommand::new_window(session_name, "test-window", None).unwrap();
+    TmuxCommand::new_window(session_name, "test-window", None, None).unwrap();
 
     // Send keys
     let result = TmuxCommand::send_keys(session_name, "test-window", "echo hello");

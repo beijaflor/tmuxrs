@@ -1,7 +1,7 @@
 use crate::config::Config;
 use crate::error::{Result, TmuxrsError};
 use crate::tmux::TmuxCommand;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Session manager for tmuxrs
 #[derive(Default)]
@@ -11,6 +11,19 @@ impl SessionManager {
     /// Create a new session manager
     pub fn new() -> Self {
         Self
+    }
+
+    /// Expand tilde (~) and environment variables in paths using shellexpand
+    fn expand_path(path: &str) -> Result<PathBuf> {
+        // Try full expansion first (handles both tilde and environment variables)
+        match shellexpand::full(path) {
+            Ok(expanded) => Ok(PathBuf::from(expanded.as_ref())),
+            Err(_) => {
+                // Fallback: try basic tilde expansion only
+                let expanded = shellexpand::tilde(path);
+                Ok(PathBuf::from(expanded.as_ref()))
+            }
+        }
     }
 
     /// Start a session with optional explicit name
@@ -70,19 +83,29 @@ impl SessionManager {
 
         // Create session
         let root_dir = config.root.as_deref().unwrap_or("~");
-        let root_path = Path::new(root_dir);
-        TmuxCommand::new_session(&session_name, root_path)?;
+        let root_path = Self::expand_path(root_dir)?;
+        TmuxCommand::new_session(&session_name, &root_path)?;
 
         // Create windows
         for (index, window_config) in config.windows.iter().enumerate() {
             match window_config {
                 crate::config::WindowConfig::Simple(command) => {
                     let window_name = format!("window-{}", index + 1);
-                    TmuxCommand::new_window(&session_name, &window_name, Some(command))?;
+                    TmuxCommand::new_window(
+                        &session_name,
+                        &window_name,
+                        Some(command),
+                        Some(&root_path),
+                    )?;
                 }
                 crate::config::WindowConfig::Complex { window } => {
                     for (window_name, command) in window {
-                        TmuxCommand::new_window(&session_name, window_name, Some(command))?;
+                        TmuxCommand::new_window(
+                            &session_name,
+                            window_name,
+                            Some(command),
+                            Some(&root_path),
+                        )?;
                     }
                 }
                 crate::config::WindowConfig::WithLayout { window } => {
@@ -93,7 +116,12 @@ impl SessionManager {
                                 "Window layout must have at least one pane".to_string(),
                             )
                         })?;
-                        TmuxCommand::new_window(&session_name, window_name, Some(first_pane))?;
+                        TmuxCommand::new_window(
+                            &session_name,
+                            window_name,
+                            Some(first_pane),
+                            Some(&root_path),
+                        )?;
 
                         // Add additional panes by splitting
                         for pane_command in layout_config.panes.iter().skip(1) {
@@ -101,6 +129,7 @@ impl SessionManager {
                                 &session_name,
                                 window_name,
                                 pane_command,
+                                Some(&root_path),
                             )?;
                         }
 

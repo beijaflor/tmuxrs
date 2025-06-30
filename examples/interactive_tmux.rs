@@ -74,7 +74,7 @@ fn create_window() {
     io::stdin().read_line(&mut window).unwrap();
     let window = window.trim();
 
-    match TmuxCommand::new_window(session, window, None) {
+    match TmuxCommand::new_window(session, window, None, None) {
         Ok(_) => println!("✅ Window '{window}' created successfully"),
         Err(e) => println!("❌ Failed to create window: {e}"),
     }
