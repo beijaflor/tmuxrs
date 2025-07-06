@@ -86,8 +86,17 @@ windows:
 ## Testing Strategy
 - Unit tests for config parsing and discovery
 - Integration tests with actual tmux sessions
+- Shell interaction tests to ensure proper environment inheritance
 - Test error cases (missing configs, invalid YAML)
 - Manual testing checklist for session lifecycle
+
+### Shell Interaction Testing
+- `tests/shell_interaction_test.rs` - Comprehensive shell interaction tests
+- Tests shell initialization and environment inheritance
+- Validates that tmuxrs creates proper interactive shells
+- Ensures shell features (aliases, functions, variables) work correctly
+- Tests multi-pane sessions for independent shell states
+- Skipped in CI environments where tmux is not available
 
 ## Documentation References
 - Architecture details: `docs/design/02-system-architecture.md`
