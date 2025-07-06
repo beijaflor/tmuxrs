@@ -95,7 +95,7 @@ impl SessionManager {
                     TmuxCommand::new_window(
                         &session_name,
                         &window_name,
-                        None,  // No command - let shell initialize properly
+                        None, // No command - let shell initialize properly
                         Some(&root_path),
                     )?;
                     // Send command after window is created
@@ -109,7 +109,7 @@ impl SessionManager {
                         TmuxCommand::new_window(
                             &session_name,
                             window_name,
-                            None,  // No command - let shell initialize properly
+                            None, // No command - let shell initialize properly
                             Some(&root_path),
                         )?;
                         // Send command after window is created
@@ -124,10 +124,10 @@ impl SessionManager {
                         TmuxCommand::new_window(
                             &session_name,
                             window_name,
-                            None,  // No command - let shell initialize properly
+                            None, // No command - let shell initialize properly
                             Some(&root_path),
                         )?;
-                        
+
                         // Send first pane command if not empty
                         let first_pane = layout_config.panes.first().ok_or_else(|| {
                             TmuxrsError::TmuxError(
@@ -139,7 +139,9 @@ impl SessionManager {
                         }
 
                         // Add additional panes by splitting
-                        for (pane_index, pane_command) in layout_config.panes.iter().skip(1).enumerate() {
+                        for (pane_index, pane_command) in
+                            layout_config.panes.iter().skip(1).enumerate()
+                        {
                             // Create split without command to allow proper shell initialization
                             TmuxCommand::split_window_horizontal(
                                 &session_name,
@@ -151,7 +153,12 @@ impl SessionManager {
                             // Pane indices start at 0, first pane is 0, second is 1, etc.
                             let target_pane_index = pane_index + 1; // +1 because we skipped the first pane
                             if !pane_command.trim().is_empty() {
-                                TmuxCommand::send_keys_to_pane(&session_name, window_name, target_pane_index, pane_command)?;
+                                TmuxCommand::send_keys_to_pane(
+                                    &session_name,
+                                    window_name,
+                                    target_pane_index,
+                                    pane_command,
+                                )?;
                             }
                         }
 

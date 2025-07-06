@@ -134,7 +134,12 @@ impl TmuxCommand {
 
     /// Send keys to a specific pane
     #[allow(dead_code)]
-    pub fn send_keys_to_pane(session_name: &str, window_name: &str, pane_index: usize, keys: &str) -> Result<String> {
+    pub fn send_keys_to_pane(
+        session_name: &str,
+        window_name: &str,
+        pane_index: usize,
+        keys: &str,
+    ) -> Result<String> {
         Self::new()
             .arg("send-keys")
             .arg("-t")
