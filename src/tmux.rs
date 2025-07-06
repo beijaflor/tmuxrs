@@ -132,6 +132,18 @@ impl TmuxCommand {
             .execute()
     }
 
+    /// Send keys to a specific pane
+    #[allow(dead_code)]
+    pub fn send_keys_to_pane(session_name: &str, window_name: &str, pane_index: usize, keys: &str) -> Result<String> {
+        Self::new()
+            .arg("send-keys")
+            .arg("-t")
+            .arg(format!("{session_name}:{window_name}.{pane_index}"))
+            .arg(keys)
+            .arg("Enter")
+            .execute()
+    }
+
     /// Kill a session
     #[allow(dead_code)]
     pub fn kill_session(session_name: &str) -> Result<String> {
@@ -165,7 +177,12 @@ impl TmuxCommand {
             cmd = cmd.arg("-c").arg(dir.to_string_lossy().as_ref());
         }
 
-        cmd.arg(command).execute()
+        // Only add command if not empty - this allows shell to initialize properly
+        if !command.trim().is_empty() {
+            cmd = cmd.arg(command);
+        }
+
+        cmd.execute()
     }
 
     /// Split window vertically (above/below)
@@ -191,7 +208,12 @@ impl TmuxCommand {
             cmd = cmd.arg("-c").arg(dir.to_string_lossy().as_ref());
         }
 
-        cmd.arg(command).execute()
+        // Only add command if not empty - this allows shell to initialize properly
+        if !command.trim().is_empty() {
+            cmd = cmd.arg(command);
+        }
+
+        cmd.execute()
     }
 
     /// Select layout for a window
