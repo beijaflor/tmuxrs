@@ -91,46 +91,75 @@ impl SessionManager {
             match window_config {
                 crate::config::WindowConfig::Simple(command) => {
                     let window_name = format!("window-{}", index + 1);
+                    // Create window without command to allow proper shell initialization
                     TmuxCommand::new_window(
                         &session_name,
                         &window_name,
-                        Some(command),
+                        None, // No command - let shell initialize properly
                         Some(&root_path),
                     )?;
+                    // Send command after window is created
+                    if !command.trim().is_empty() {
+                        TmuxCommand::send_keys(&session_name, &window_name, command)?;
+                    }
                 }
                 crate::config::WindowConfig::Complex { window } => {
                     for (window_name, command) in window {
+                        // Create window without command to allow proper shell initialization
                         TmuxCommand::new_window(
                             &session_name,
                             window_name,
-                            Some(command),
+                            None, // No command - let shell initialize properly
                             Some(&root_path),
                         )?;
+                        // Send command after window is created
+                        if !command.trim().is_empty() {
+                            TmuxCommand::send_keys(&session_name, window_name, command)?;
+                        }
                     }
                 }
                 crate::config::WindowConfig::WithLayout { window } => {
                     for (window_name, layout_config) in window {
-                        // Create the window with the first pane
+                        // Create the window without command to allow proper shell initialization
+                        TmuxCommand::new_window(
+                            &session_name,
+                            window_name,
+                            None, // No command - let shell initialize properly
+                            Some(&root_path),
+                        )?;
+
+                        // Send first pane command if not empty
                         let first_pane = layout_config.panes.first().ok_or_else(|| {
                             TmuxrsError::TmuxError(
                                 "Window layout must have at least one pane".to_string(),
                             )
                         })?;
-                        TmuxCommand::new_window(
-                            &session_name,
-                            window_name,
-                            Some(first_pane),
-                            Some(&root_path),
-                        )?;
+                        if !first_pane.trim().is_empty() {
+                            TmuxCommand::send_keys(&session_name, window_name, first_pane)?;
+                        }
 
                         // Add additional panes by splitting
-                        for pane_command in layout_config.panes.iter().skip(1) {
+                        for (pane_index, pane_command) in
+                            layout_config.panes.iter().skip(1).enumerate()
+                        {
+                            // Create split without command to allow proper shell initialization
                             TmuxCommand::split_window_horizontal(
                                 &session_name,
                                 window_name,
-                                pane_command,
+                                "", // Empty command - shell will initialize properly
                                 Some(&root_path),
                             )?;
+                            // Send command to the new pane after it's created
+                            // Pane indices start at 0, first pane is 0, second is 1, etc.
+                            let target_pane_index = pane_index + 1; // +1 because we skipped the first pane
+                            if !pane_command.trim().is_empty() {
+                                TmuxCommand::send_keys_to_pane(
+                                    &session_name,
+                                    window_name,
+                                    target_pane_index,
+                                    pane_command,
+                                )?;
+                            }
                         }
 
                         // Apply layout if specified
