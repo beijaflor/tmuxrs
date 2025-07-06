@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2025-01-06
+
+### Fixed
+- **Shell initialization** - Fixed direnv and shell environment inheritance in tmux sessions (#4)
+  - Windows and panes now properly initialize shells before running commands
+  - Shell hooks (like direnv) now work correctly in all windows and split panes
+  - Environment variables are properly inherited from the parent shell
+
+### Added
+- **Shell interaction tests** - Comprehensive integration tests for shell initialization (#6)
+- **Robust path expansion** - Added shellexpand library for proper tilde expansion in paths (#3)
+
+### Changed
+- **Window creation behavior** - Modified to create windows without commands first, then send commands via send-keys
+- **Split pane creation** - Extended shell initialization fix to split panes
+
 ## [0.1.0] - 2024-06-28
 
 ### Added
@@ -38,5 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Platforms**: Linux, macOS, Windows (where tmux is available)
 - **License**: MIT OR Apache-2.0
 
-[Unreleased]: https://github.com/beijaflor/tmuxrs/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/beijaflor/tmuxrs/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/beijaflor/tmuxrs/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/beijaflor/tmuxrs/releases/tag/v0.1.0
