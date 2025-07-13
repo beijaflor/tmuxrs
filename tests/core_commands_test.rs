@@ -4,7 +4,7 @@ use tmuxrs::session::SessionManager;
 use tmuxrs::tmux::TmuxCommand;
 
 mod common;
-use common::{should_run_integration_tests, TmuxTestSession};
+use common::should_run_integration_tests;
 
 #[test]
 fn test_start_command_with_explicit_name() {
@@ -222,23 +222,33 @@ windows:
     let exists = TmuxCommand::session_exists("attach-test").unwrap();
     assert!(exists, "Session should exist after creation");
 
-    // Second call should detect existing session and try to attach (fails in test env)
+    // Second call should detect existing session and try to attach
     let result2 = session_manager.start_session_with_options(
         Some("attach-test"),
         Some(&config_dir),
         true,  // attach = true (to test existing session attach behavior)
         false, // append = false
     );
-    assert!(
-        result2.is_err(),
-        "Should fail to attach to existing session in test environment: {result2:?}"
-    );
 
-    // Verify error message indicates attach failure
-    assert!(result2
-        .unwrap_err()
-        .to_string()
-        .contains("Failed to attach"));
+    // Both outcomes are valid depending on environment
+    match result2 {
+        Ok(msg) => {
+            // Attach succeeded - valid in TTY-enabled environments
+            assert!(
+                msg.contains("Attached to existing session"),
+                "Success message should indicate attach: {msg}"
+            );
+            println!("✓ Successfully attached to existing session (TTY available)");
+        }
+        Err(error) => {
+            // Attach failed - valid in non-TTY environments
+            assert!(
+                error.to_string().contains("Failed to attach"),
+                "Error should indicate attach failure: {error}"
+            );
+            println!("✓ Attach failed as expected in non-TTY environment");
+        }
+    }
 
     // Clean up
     let _ = TmuxCommand::kill_session("attach-test");
