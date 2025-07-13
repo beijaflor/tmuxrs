@@ -30,10 +30,10 @@ src/
 - `cargo fmt` - Format code
 
 ### Integration Tests (Docker Only)
-- `docker-compose run --rm integration-tests` - Run all tests including integration tests
-- `docker-compose run --rm integration-tests cargo test TEST_NAME` - Run specific test
-- `docker-compose build` - Build Docker test image
-- `docker-compose down --volumes` - Clean up containers and volumes
+- `docker compose run --rm integration-tests` - Run all tests including integration tests (auto-cleanup)
+- `docker compose run --rm integration-tests bash -c "cargo test TEST_NAME"` - Run specific test
+- `docker compose build` - Build Docker test image
+- `docker compose down --volumes` - Clean up containers and volumes
 
 ## MVP Implementation Order
 1. **CLI structure** (`clap` argument parsing)
@@ -100,7 +100,7 @@ windows:
 - **Automatic Skipping**: Integration tests always skip with `cargo test`
 - **Files**: All tests in `tests/` directory that use `TmuxCommand` or `SessionManager`
 - **Enable Flag**: Integration tests only run when `INTEGRATION_TESTS=1` is set
-- **Commands**: Use `docker-compose run --rm integration-tests` to run integration tests
+- **Commands**: Use `docker compose run --rm integration-tests` to run integration tests
 - **Skip Logic**: Tests run only when `INTEGRATION_TESTS=1` environment variable is set
 
 ### Docker Test Environment

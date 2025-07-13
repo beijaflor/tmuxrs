@@ -129,7 +129,7 @@ impl Drop for ShellTestHelper {
 #[test]
 fn test_shell_initialization_files_executed() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -166,7 +166,7 @@ fn test_shell_initialization_files_executed() {
 #[test]
 fn test_interactive_shell_features() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -203,7 +203,7 @@ fn test_interactive_shell_features() {
 #[test]
 fn test_environment_inheritance() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -241,7 +241,7 @@ fn test_environment_inheritance() {
 #[test]
 fn test_shell_features_in_split_panes() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -281,7 +281,7 @@ fn test_shell_features_in_split_panes() {
 #[test]
 fn test_shell_command_execution() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -328,7 +328,7 @@ fn test_shell_command_execution() {
 #[test]
 fn test_no_shell_config_works_normally() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -369,7 +369,7 @@ fn test_no_shell_config_works_normally() {
 #[test]
 fn test_shell_state_independence() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 

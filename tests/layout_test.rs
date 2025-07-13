@@ -8,7 +8,7 @@ use common::should_run_integration_tests;
 #[test]
 fn test_session_with_main_vertical_layout() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -58,7 +58,7 @@ windows:
 #[test]
 fn test_session_with_main_horizontal_layout() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -104,7 +104,7 @@ windows:
 #[test]
 fn test_session_with_tiled_layout() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -160,7 +160,7 @@ windows:
 #[test]
 fn test_tmux_split_window_horizontal() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -185,7 +185,7 @@ fn test_tmux_split_window_horizontal() {
 #[test]
 fn test_tmux_split_window_vertical() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -210,7 +210,7 @@ fn test_tmux_split_window_vertical() {
 #[test]
 fn test_tmux_select_layout() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 

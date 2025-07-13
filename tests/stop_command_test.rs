@@ -8,7 +8,7 @@ use common::should_run_integration_tests;
 #[test]
 fn test_stop_existing_session() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -38,7 +38,7 @@ fn test_stop_existing_session() {
 #[test]
 fn test_stop_nonexistent_session() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let session_name = "stop-test-nonexistent";
@@ -63,7 +63,7 @@ fn test_stop_nonexistent_session() {
 #[test]
 fn test_start_and_stop_workflow() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let temp_dir = TempDir::new().unwrap();
@@ -112,7 +112,7 @@ windows:
 #[test]
 fn test_stop_session_with_complex_windows() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let temp_dir = TempDir::new().unwrap();

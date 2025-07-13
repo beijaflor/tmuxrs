@@ -9,5 +9,7 @@ services:
       - RUST_LOG=debug
       - RUST_BACKTRACE=1
       - INTEGRATION_TESTS=1
+      - TERM=xterm-256color
+      - TMUX_TMPDIR=/tmp
     working_dir: /app
-    tty: true
+    command: ["bash", "-c", "cargo test && tmux kill-server 2>/dev/null || true"]

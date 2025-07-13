@@ -9,7 +9,7 @@ use common::should_run_integration_tests;
 #[test]
 fn test_start_command_with_explicit_name() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -53,7 +53,7 @@ windows:
 #[test]
 fn test_start_command_with_directory_detection() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let temp_dir = TempDir::new().unwrap();
@@ -102,7 +102,7 @@ windows:
 #[test]
 fn test_list_command() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let temp_dir = TempDir::new().unwrap();
@@ -148,7 +148,7 @@ windows:
 #[test]
 fn test_stop_command() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let temp_dir = TempDir::new().unwrap();
@@ -187,7 +187,7 @@ windows:
 #[test]
 fn test_attach_or_create_session() {
     if !should_run_integration_tests() {
-        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let temp_dir = TempDir::new().unwrap();
