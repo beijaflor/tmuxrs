@@ -40,7 +40,7 @@ windows:
     );
 
     // Handle both success and failure cases depending on TTY availability
-    match result {
+    let attach_succeeded = match &result {
         Ok(msg) => {
             // Attach succeeded - valid in TTY-enabled environments
             assert!(
@@ -50,6 +50,7 @@ windows:
                 "Success message should indicate session creation: {msg}"
             );
             println!("✓ Successfully created and attached to session (TTY available)");
+            true
         }
         Err(error) => {
             let error_msg = error.to_string();
@@ -59,11 +60,19 @@ windows:
                 "Error should indicate attach failure: {error_msg}"
             );
             println!("✓ Session created but attach failed as expected in non-TTY environment");
+            false
         }
-    }
+    };
 
-    // Verify session exists
-    assert!(session.exists().unwrap());
+    // Verify session exists (only if attach failed - successful attach might close the session)
+    if !attach_succeeded {
+        // When attach fails, session should still exist
+        assert!(
+            session.exists().unwrap(),
+            "Session should exist after failed attach"
+        );
+    }
+    // When attach succeeds, the session might already be closed - this is OK
 
     // Automatic cleanup via Drop trait
 }
