@@ -39,18 +39,24 @@ windows:
         false, // append = false
     );
 
-    // Should create session but fail to attach in test environment (no TTY)
+    // Handle both success and failure cases depending on TTY availability
     match result {
+        Ok(msg) => {
+            // Attach succeeded - valid in TTY-enabled environments
+            assert!(
+                msg.contains("created and attached") || msg.contains("Session '"),
+                "Success message should indicate session creation: {msg}"
+            );
+            println!("✓ Successfully created and attached to session (TTY available)");
+        }
         Err(error) => {
             let error_msg = error.to_string();
             assert!(
                 error_msg.contains("Failed to attach")
                     || error_msg.contains("but failed to attach"),
-                "Expected attach failure error, got: {error_msg}"
+                "Error should indicate attach failure: {error_msg}"
             );
-        }
-        Ok(msg) => {
-            panic!("Expected attach to fail in test environment, but got success: {msg}");
+            println!("✓ Session created but attach failed as expected in non-TTY environment");
         }
     }
 
