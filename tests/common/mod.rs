@@ -12,7 +12,7 @@ pub fn should_run_integration_tests() -> bool {
 macro_rules! skip_if_not_integration_env {
     () => {
         if !$crate::common::should_run_integration_tests() {
-            eprintln!("Skipping integration test - set INTEGRATION_TESTS=1 or run outside CI");
+            eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
             return;
         }
     };

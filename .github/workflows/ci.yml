@@ -11,7 +11,7 @@ env:
 
 jobs:
   test:
-    name: Test
+    name: Unit Tests
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -27,20 +27,7 @@ jobs:
         toolchain: ${{ matrix.rust }}
         components: rustfmt, clippy
         
-    - name: Install tmux (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update && sudo apt-get install -y tmux
-        # Create a fake display for tmux in CI
-        export DISPLAY=:99.0
-      
-    - name: Install tmux (macOS)
-      if: matrix.os == 'macOS-latest' 
-      run: |
-        brew install tmux
-        # Ensure tmux can run in CI environment
-        tmux new-session -d -s test-session || true
-        tmux kill-session -t test-session || true
+    # No need to install tmux - integration tests run in Docker
       
     - name: Cache cargo registry
       uses: actions/cache@v4
@@ -69,11 +56,24 @@ jobs:
     - name: Build
       run: cargo build --verbose
 
-    - name: Run tests
+    - name: Run unit tests
       run: cargo test --verbose
-      env:
-        # Help tmux work in CI environment
-        TMUX_TMPDIR: /tmp
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build Docker test environment
+      run: docker-compose build
+      
+    - name: Run integration tests
+      run: docker-compose run --rm integration-tests
+      
+    - name: Cleanup
+      if: always()
+      run: docker-compose down --volumes
 
   coverage:
     name: Coverage
@@ -84,13 +84,10 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
       
-    - name: Install tmux
-      run: sudo apt-get update && sudo apt-get install -y tmux
-      
     - name: Install cargo-tarpaulin
       run: cargo install cargo-tarpaulin
       
-    - name: Generate code coverage
+    - name: Generate code coverage (unit tests only)
       run: cargo tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
       
     - name: Upload to codecov.io
