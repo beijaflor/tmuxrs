@@ -13,3 +13,5 @@ services:
       - TMUX_TMPDIR=/tmp
     working_dir: /app
     command: ["cargo", "test"]
+    tty: false
+    stdin_open: false
