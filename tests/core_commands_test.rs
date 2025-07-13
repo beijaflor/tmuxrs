@@ -3,10 +3,13 @@ use tmuxrs::config::Config;
 use tmuxrs::session::SessionManager;
 use tmuxrs::tmux::TmuxCommand;
 
+mod common;
+use common::should_run_integration_tests;
+
 #[test]
 fn test_start_command_with_explicit_name() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -49,8 +52,8 @@ windows:
 
 #[test]
 fn test_start_command_with_directory_detection() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let temp_dir = TempDir::new().unwrap();
@@ -98,8 +101,8 @@ windows:
 
 #[test]
 fn test_list_command() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let temp_dir = TempDir::new().unwrap();
@@ -144,8 +147,8 @@ windows:
 
 #[test]
 fn test_stop_command() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let temp_dir = TempDir::new().unwrap();
@@ -183,8 +186,8 @@ windows:
 
 #[test]
 fn test_attach_or_create_session() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let temp_dir = TempDir::new().unwrap();

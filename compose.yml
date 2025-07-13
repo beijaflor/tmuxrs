@@ -1,0 +1,13 @@
+services:
+  integration-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - .:/app
+    environment:
+      - RUST_LOG=debug
+      - RUST_BACKTRACE=1
+      - INTEGRATION_TESTS=1
+    working_dir: /app
+    tty: true

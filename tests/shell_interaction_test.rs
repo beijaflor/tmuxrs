@@ -2,6 +2,9 @@ use tempfile::TempDir;
 use tmuxrs::session::SessionManager;
 use tmuxrs::tmux::TmuxCommand;
 
+mod common;
+use common::should_run_integration_tests;
+
 /// Test utilities for shell interaction testing
 struct ShellTestHelper {
     temp_dir: TempDir,
@@ -125,8 +128,8 @@ impl Drop for ShellTestHelper {
 
 #[test]
 fn test_shell_initialization_files_executed() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -162,8 +165,8 @@ fn test_shell_initialization_files_executed() {
 
 #[test]
 fn test_interactive_shell_features() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -199,8 +202,8 @@ fn test_interactive_shell_features() {
 
 #[test]
 fn test_environment_inheritance() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -237,8 +240,8 @@ fn test_environment_inheritance() {
 
 #[test]
 fn test_shell_features_in_split_panes() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -277,8 +280,8 @@ fn test_shell_features_in_split_panes() {
 
 #[test]
 fn test_shell_command_execution() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -324,8 +327,8 @@ fn test_shell_command_execution() {
 
 #[test]
 fn test_no_shell_config_works_normally() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -365,8 +368,8 @@ fn test_no_shell_config_works_normally() {
 
 #[test]
 fn test_shell_state_independence() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 

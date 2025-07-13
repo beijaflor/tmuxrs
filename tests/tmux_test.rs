@@ -2,10 +2,13 @@ use tempfile::TempDir;
 use tmuxrs::error::TmuxrsError;
 use tmuxrs::tmux::TmuxCommand;
 
+mod common;
+use common::should_run_integration_tests;
+
 #[test]
 fn test_tmux_command_execution() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -26,8 +29,8 @@ fn test_tmux_command_execution() {
 
 #[test]
 fn test_session_exists_check() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let session_name = "test-nonexistent-session-12345";
@@ -38,8 +41,8 @@ fn test_session_exists_check() {
 
 #[test]
 fn test_create_session() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let session_name = "test-create-session-12345";
@@ -62,8 +65,8 @@ fn test_create_session() {
 
 #[test]
 fn test_create_window() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let session_name = "test-window-session-12345";
@@ -83,8 +86,8 @@ fn test_create_window() {
 
 #[test]
 fn test_send_keys() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
     let session_name = "test-keys-session-12345";

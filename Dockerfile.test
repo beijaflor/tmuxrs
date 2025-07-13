@@ -1,0 +1,32 @@
+# Dockerfile for tmuxrs testing
+# This provides an isolated environment for running integration tests
+
+FROM rust:1.80
+
+# Install system dependencies including tmux
+RUN apt-get update && apt-get install -y \
+    tmux \
+    bash \
+    zsh \
+    procps \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user for testing
+RUN useradd -m -s /bin/bash testuser
+
+# Set working directory
+WORKDIR /app
+
+# Change ownership of the app directory
+RUN chown testuser:testuser /app
+
+# Set environment variables for testing
+ENV RUST_LOG=debug
+ENV RUST_BACKTRACE=1
+
+# Switch to test user
+USER testuser
+
+# Default command runs all tests
+CMD ["cargo", "test", "--", "--test-threads=1"]

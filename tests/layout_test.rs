@@ -2,10 +2,13 @@ use tempfile::TempDir;
 use tmuxrs::session::SessionManager;
 use tmuxrs::tmux::TmuxCommand;
 
+mod common;
+use common::should_run_integration_tests;
+
 #[test]
 fn test_session_with_main_vertical_layout() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -54,8 +57,8 @@ windows:
 
 #[test]
 fn test_session_with_main_horizontal_layout() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -100,8 +103,8 @@ windows:
 
 #[test]
 fn test_session_with_tiled_layout() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -156,8 +159,8 @@ windows:
 
 #[test]
 fn test_tmux_split_window_horizontal() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -181,8 +184,8 @@ fn test_tmux_split_window_horizontal() {
 
 #[test]
 fn test_tmux_split_window_vertical() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
@@ -206,8 +209,8 @@ fn test_tmux_split_window_vertical() {
 
 #[test]
 fn test_tmux_select_layout() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker-compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
