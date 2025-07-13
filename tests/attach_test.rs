@@ -26,7 +26,7 @@ fn test_attach_to_existing_session() {
         result.is_err(),
         "Attach should fail in test environment due to no TTY inheritance"
     );
-    
+
     // No manual cleanup needed - Drop will handle it
 }
 
@@ -36,18 +36,20 @@ fn test_attach_to_nonexistent_session() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
-    let session_name = "attach-test-nonexistent";
 
-    // Ensure session doesn't exist
-    let _ = TmuxCommand::kill_session(session_name);
+    let session = TmuxTestSession::with_temp_dir("attach-nonexistent");
+
+    // Don't create the session - it should not exist
 
     // Try to attach to non-existent session
-    let result = TmuxCommand::attach_session(session_name);
+    let result = TmuxCommand::attach_session(session.name());
 
     assert!(
         result.is_err(),
         "Should fail when attaching to non-existent session"
     );
+
+    // Automatic cleanup via Drop trait
 }
 
 #[test]
@@ -57,25 +59,29 @@ fn test_start_session_with_attach_flag() {
         return;
     }
 
+    let session = TmuxTestSession::with_temp_dir("attach-flag-test");
     let temp_dir = TempDir::new().unwrap();
     let config_dir = temp_dir.path().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
 
     // Create a basic config file
-    let config_file = config_dir.join("attach-flag-test.yml");
-    let yaml_content = r#"
-name: attach-flag-test
+    let config_file = config_dir.join(format!("{}.yml", session.name()));
+    let yaml_content = format!(
+        r#"
+name: {}
 root: /tmp
 windows:
   - editor: vim
-"#;
+"#,
+        session.name()
+    );
     std::fs::write(&config_file, yaml_content).unwrap();
 
     let session_manager = SessionManager::new();
 
     // Test starting session with attach flag
     let result = session_manager.start_session_with_options(
-        Some("attach-flag-test"),
+        Some(session.name()),
         Some(&config_dir),
         true,  // attach = true
         false, // append = false
@@ -97,10 +103,9 @@ windows:
     }
 
     // Verify session exists
-    assert!(TmuxCommand::session_exists("attach-flag-test").unwrap());
+    assert!(session.exists().unwrap());
 
-    // Clean up
-    let _ = TmuxCommand::kill_session("attach-flag-test");
+    // Automatic cleanup via Drop trait
 }
 
 #[test]
@@ -109,25 +114,30 @@ fn test_start_session_no_attach_flag() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
+
+    let session = TmuxTestSession::with_temp_dir("no-attach-test");
     let temp_dir = TempDir::new().unwrap();
     let config_dir = temp_dir.path().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
 
     // Create a basic config file
-    let config_file = config_dir.join("no-attach-test.yml");
-    let yaml_content = r#"
-name: no-attach-test
+    let config_file = config_dir.join(format!("{}.yml", session.name()));
+    let yaml_content = format!(
+        r#"
+name: {}
 root: /tmp
 windows:
   - editor: vim
-"#;
+"#,
+        session.name()
+    );
     std::fs::write(&config_file, yaml_content).unwrap();
 
     let session_manager = SessionManager::new();
 
     // Test starting session without attach flag
     let result = session_manager.start_session_with_options(
-        Some("no-attach-test"),
+        Some(session.name()),
         Some(&config_dir),
         false, // attach = false
         false, // append = false
@@ -136,10 +146,9 @@ windows:
     assert!(result.is_ok(), "Should create detached session: {result:?}");
 
     // Verify session exists
-    assert!(TmuxCommand::session_exists("no-attach-test").unwrap());
+    assert!(session.exists().unwrap());
 
-    // Clean up
-    let _ = TmuxCommand::kill_session("no-attach-test");
+    // Automatic cleanup via Drop trait
 }
 
 #[test]
@@ -148,25 +157,30 @@ fn test_existing_session_with_attach() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
+
+    let session = TmuxTestSession::with_temp_dir("existing-attach-test");
     let temp_dir = TempDir::new().unwrap();
     let config_dir = temp_dir.path().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
 
     // Create a basic config file
-    let config_file = config_dir.join("existing-attach-test.yml");
-    let yaml_content = r#"
-name: existing-attach-test
+    let config_file = config_dir.join(format!("{}.yml", session.name()));
+    let yaml_content = format!(
+        r#"
+name: {}
 root: /tmp
 windows:
   - editor: vim
-"#;
+"#,
+        session.name()
+    );
     std::fs::write(&config_file, yaml_content).unwrap();
 
     let session_manager = SessionManager::new();
 
     // Create session first
     let _ = session_manager.start_session_with_options(
-        Some("existing-attach-test"),
+        Some(session.name()),
         Some(&config_dir),
         false, // attach = false
         false, // append = false
@@ -174,7 +188,7 @@ windows:
 
     // Try to start again with attach=true (should fail to attach in test env)
     let result = session_manager.start_session_with_options(
-        Some("existing-attach-test"),
+        Some(session.name()),
         Some(&config_dir),
         true,  // attach = true
         false, // append = false
@@ -188,6 +202,5 @@ windows:
     // Verify error message indicates attach failure
     assert!(result.unwrap_err().to_string().contains("Failed to attach"));
 
-    // Clean up
-    let _ = TmuxCommand::kill_session("existing-attach-test");
+    // Automatic cleanup via Drop trait
 }
