@@ -12,4 +12,4 @@ services:
       - TERM=xterm-256color
       - TMUX_TMPDIR=/tmp
     working_dir: /app
-    command: ["bash", "-c", "cargo test && tmux kill-server 2>/dev/null || true"]
+    command: ["cargo", "test"]

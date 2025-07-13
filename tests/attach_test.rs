@@ -3,7 +3,7 @@ use tmuxrs::session::SessionManager;
 use tmuxrs::tmux::TmuxCommand;
 
 mod common;
-use common::should_run_integration_tests;
+use common::{should_run_integration_tests, TmuxTestSession};
 
 #[test]
 fn test_attach_to_existing_session() {
@@ -12,17 +12,13 @@ fn test_attach_to_existing_session() {
         return;
     }
 
-    let session_name = "attach-test-existing";
-    let temp_dir = TempDir::new().unwrap();
-
-    // Clean up any existing session
-    let _ = TmuxCommand::kill_session(session_name);
+    let session = TmuxTestSession::with_temp_dir("attach-existing");
 
     // Create a session first
-    TmuxCommand::new_session(session_name, temp_dir.path()).unwrap();
+    session.create().unwrap();
 
     // Test attaching to the session
-    let result = TmuxCommand::attach_session(session_name);
+    let result = TmuxCommand::attach_session(session.name());
 
     // Note: attach_session will fail in test environment since there's no TTY inheritance in tests
     // We're testing that the command is properly formatted and executed
@@ -30,9 +26,8 @@ fn test_attach_to_existing_session() {
         result.is_err(),
         "Attach should fail in test environment due to no TTY inheritance"
     );
-
-    // Clean up
-    let _ = TmuxCommand::kill_session(session_name);
+    
+    // No manual cleanup needed - Drop will handle it
 }
 
 #[test]

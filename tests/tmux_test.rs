@@ -1,9 +1,8 @@
-use tempfile::TempDir;
 use tmuxrs::error::TmuxrsError;
 use tmuxrs::tmux::TmuxCommand;
 
 mod common;
-use common::should_run_integration_tests;
+use common::{should_run_integration_tests, TmuxTestSession};
 
 #[test]
 fn test_tmux_command_execution() {
@@ -45,22 +44,17 @@ fn test_create_session() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
-    let session_name = "test-create-session-12345";
-    let temp_dir = TempDir::new().unwrap();
-
-    // Clean up any existing session first
-    let _ = TmuxCommand::kill_session(session_name);
+    let session = TmuxTestSession::with_temp_dir("create-session");
 
     // Create session
-    let result = TmuxCommand::new_session(session_name, temp_dir.path());
+    let result = session.create();
     assert!(result.is_ok(), "Failed to create session: {result:?}");
 
     // Verify session exists
-    let exists = TmuxCommand::session_exists(session_name).unwrap();
+    let exists = session.exists().unwrap();
     assert!(exists, "Session should exist after creation");
-
-    // Clean up
-    let _ = TmuxCommand::kill_session(session_name);
+    
+    // No manual cleanup needed - Drop will handle it
 }
 
 #[test]
@@ -69,19 +63,14 @@ fn test_create_window() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
-    let session_name = "test-window-session-12345";
-    let temp_dir = TempDir::new().unwrap();
+    let session = TmuxTestSession::with_temp_dir("create-window");
 
-    // Clean up and create session
-    let _ = TmuxCommand::kill_session(session_name);
-    TmuxCommand::new_session(session_name, temp_dir.path()).unwrap();
-
-    // Create window
-    let result = TmuxCommand::new_window(session_name, "test-window", None, None);
+    // Create session and window
+    session.create().unwrap();
+    let result = session.create_window("test-window");
     assert!(result.is_ok(), "Failed to create window: {result:?}");
-
-    // Clean up
-    let _ = TmuxCommand::kill_session(session_name);
+    
+    // No manual cleanup needed - Drop will handle it
 }
 
 #[test]
@@ -90,20 +79,15 @@ fn test_send_keys() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
-    let session_name = "test-keys-session-12345";
-    let temp_dir = TempDir::new().unwrap();
+    let session = TmuxTestSession::with_temp_dir("send-keys");
 
-    // Clean up and create session
-    let _ = TmuxCommand::kill_session(session_name);
-    TmuxCommand::new_session(session_name, temp_dir.path()).unwrap();
-
-    // Create window first
-    TmuxCommand::new_window(session_name, "test-window", None, None).unwrap();
+    // Create session and window
+    session.create().unwrap();
+    session.create_window("test-window").unwrap();
 
     // Send keys
-    let result = TmuxCommand::send_keys(session_name, "test-window", "echo hello");
+    let result = session.send_keys("test-window", "echo hello");
     assert!(result.is_ok(), "Failed to send keys: {result:?}");
-
-    // Clean up
-    let _ = TmuxCommand::kill_session(session_name);
+    
+    // No manual cleanup needed - Drop will handle it
 }

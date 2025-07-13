@@ -4,7 +4,7 @@ use tmuxrs::session::SessionManager;
 use tmuxrs::tmux::TmuxCommand;
 
 mod common;
-use common::should_run_integration_tests;
+use common::{should_run_integration_tests, TmuxTestSession};
 
 #[test]
 fn test_start_command_with_explicit_name() {

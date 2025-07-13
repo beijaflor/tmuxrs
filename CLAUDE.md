@@ -30,10 +30,12 @@ src/
 - `cargo fmt` - Format code
 
 ### Integration Tests (Docker Only)
-- `docker compose run --rm integration-tests` - Run all tests including integration tests (auto-cleanup)
+- `docker compose run --rm integration-tests` - Run all tests including integration tests
 - `docker compose run --rm integration-tests bash -c "cargo test TEST_NAME"` - Run specific test
 - `docker compose build` - Build Docker test image
 - `docker compose down --volumes` - Clean up containers and volumes
+
+**Automatic Cleanup**: All integration tests use `TmuxTestSession` which automatically cleans up tmux sessions via Rust's Drop trait, ensuring no test artifacts persist between runs.
 
 ## MVP Implementation Order
 1. **CLI structure** (`clap` argument parsing)
