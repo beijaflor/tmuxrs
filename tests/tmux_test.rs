@@ -53,7 +53,7 @@ fn test_create_session() {
     // Verify session exists
     let exists = session.exists().unwrap();
     assert!(exists, "Session should exist after creation");
-    
+
     // No manual cleanup needed - Drop will handle it
 }
 
@@ -69,7 +69,7 @@ fn test_create_window() {
     session.create().unwrap();
     let result = session.create_window("test-window");
     assert!(result.is_ok(), "Failed to create window: {result:?}");
-    
+
     // No manual cleanup needed - Drop will handle it
 }
 
@@ -88,6 +88,6 @@ fn test_send_keys() {
     // Send keys
     let result = session.send_keys("test-window", "echo hello");
     assert!(result.is_ok(), "Failed to send keys: {result:?}");
-    
+
     // No manual cleanup needed - Drop will handle it
 }

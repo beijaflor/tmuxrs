@@ -73,8 +73,7 @@ windows:
     let pane_content = String::from_utf8_lossy(&output.stdout);
     assert!(
         !pane_content.trim().is_empty() && pane_content.contains("/"),
-        "HOME should be available from shell initialization, got: {}",
-        pane_content
+        "HOME should be available from shell initialization, got: {pane_content}"
     );
 
     println!("✓ Shell initialization test passed");

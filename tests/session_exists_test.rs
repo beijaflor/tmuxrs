@@ -5,7 +5,9 @@ use tmuxrs::tmux::TmuxCommand;
 
 fn ensure_clean_tmux() {
     if std::env::var("INTEGRATION_TESTS").unwrap_or_default() == "1" {
-        let _ = std::process::Command::new("tmux").arg("kill-server").output();
+        let _ = std::process::Command::new("tmux")
+            .arg("kill-server")
+            .output();
         std::thread::sleep(std::time::Duration::from_millis(100));
     }
 }
