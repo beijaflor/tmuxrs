@@ -44,7 +44,9 @@ windows:
         Ok(msg) => {
             // Attach succeeded - valid in TTY-enabled environments
             assert!(
-                msg.contains("created and attached") || msg.contains("Session '"),
+                msg.contains("Started and attached")
+                    || msg.contains("created and attached")
+                    || msg.contains("Session '"),
                 "Success message should indicate session creation: {msg}"
             );
             println!("✓ Successfully created and attached to session (TTY available)");
