@@ -1,18 +1,9 @@
 mod common;
 
-use common::should_run_integration_tests;
+use common::{should_run_integration_tests, TmuxTestSession};
 use tempfile::TempDir;
 use tmuxrs::session::SessionManager;
 use tmuxrs::tmux::TmuxCommand;
-
-fn ensure_clean_tmux() {
-    if std::env::var("INTEGRATION_TESTS").unwrap_or_default() == "1" {
-        let _ = std::process::Command::new("tmux")
-            .arg("kill-server")
-            .output();
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-}
 
 #[test]
 fn test_interactive_shell_features() {
@@ -21,31 +12,29 @@ fn test_interactive_shell_features() {
         return;
     }
 
-    ensure_clean_tmux();
-
+    let session = TmuxTestSession::with_temp_dir("interactive-test");
     let temp_dir = TempDir::new().unwrap();
     let config_dir = temp_dir.path().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
 
-    let session_name = "interactive-test";
-
     // Create tmuxrs config with bash window for interactive features
-    let config_file = config_dir.join(format!("{session_name}.yml"));
+    let config_file = config_dir.join(format!("{}.yml", session.name()));
     let yaml_content = format!(
         r#"
-name: {session_name}
+name: {}
 root: {}
 windows:
   - shell_window: bash
 "#,
-        temp_dir.path().display()
+        session.name(),
+        session.temp_dir().unwrap().display()
     );
     std::fs::write(&config_file, yaml_content).unwrap();
 
     // Start session
     let session_manager = SessionManager::new();
     let result = session_manager.start_session_with_options(
-        Some(session_name),
+        Some(session.name()),
         Some(&config_dir),
         false, // attach = false
         false, // append = false
@@ -54,21 +43,21 @@ windows:
 
     // Test that we can create and use a simple alias within the session
     TmuxCommand::send_keys(
-        session_name,
+        session.name(),
         "shell_window",
         "alias test_alias='echo alias_works'",
     )
     .unwrap();
     std::thread::sleep(std::time::Duration::from_millis(500));
 
-    TmuxCommand::send_keys(session_name, "shell_window", "test_alias").unwrap();
+    TmuxCommand::send_keys(session.name(), "shell_window", "test_alias").unwrap();
     std::thread::sleep(std::time::Duration::from_millis(500));
 
     let output = std::process::Command::new("tmux")
         .args([
             "capture-pane",
             "-t",
-            &format!("{session_name}:shell_window"),
+            &format!("{}:shell_window", session.name()),
             "-p",
         ])
         .output()
@@ -81,21 +70,21 @@ windows:
 
     // Test that we can define and call a function within the session
     TmuxCommand::send_keys(
-        session_name,
+        session.name(),
         "shell_window",
         "test_func() { echo 'func_works'; }",
     )
     .unwrap();
     std::thread::sleep(std::time::Duration::from_millis(500));
 
-    TmuxCommand::send_keys(session_name, "shell_window", "test_func").unwrap();
+    TmuxCommand::send_keys(session.name(), "shell_window", "test_func").unwrap();
     std::thread::sleep(std::time::Duration::from_millis(500));
 
     let output = std::process::Command::new("tmux")
         .args([
             "capture-pane",
             "-t",
-            &format!("{session_name}:shell_window"),
+            &format!("{}:shell_window", session.name()),
             "-p",
         ])
         .output()
@@ -107,4 +96,5 @@ windows:
     );
 
     println!("✓ Interactive shell features test passed");
+    // Automatic cleanup via Drop trait
 }

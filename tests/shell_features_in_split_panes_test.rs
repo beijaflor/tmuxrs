@@ -1,18 +1,7 @@
 mod common;
 
-use common::should_run_integration_tests;
-use tempfile::TempDir;
+use common::{should_run_integration_tests, TmuxTestSession};
 use tmuxrs::session::SessionManager;
-use tmuxrs::tmux::TmuxCommand;
-
-fn ensure_clean_tmux() {
-    if std::env::var("INTEGRATION_TESTS").unwrap_or_default() == "1" {
-        let _ = std::process::Command::new("tmux")
-            .arg("kill-server")
-            .output();
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-}
 
 #[test]
 fn test_shell_features_in_split_panes() {
@@ -21,20 +10,16 @@ fn test_shell_features_in_split_panes() {
         return;
     }
 
-    ensure_clean_tmux();
-
-    let temp_dir = TempDir::new().unwrap();
-    let config_dir = temp_dir.path().join(".config").join("tmuxrs");
+    let session = TmuxTestSession::with_temp_dir("split-panes-test");
+    let config_dir = session.temp_dir().unwrap().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
-
-    let session_name = "split-panes-test";
 
     // Create tmuxrs config with split panes that should initialize properly
     // This validates that shells start correctly in split panes
-    let config_file = config_dir.join(format!("{session_name}.yml"));
+    let config_file = config_dir.join(format!("{}.yml", session.name()));
     let yaml_content = format!(
         r#"
-name: {session_name}
+name: {}
 root: {}
 windows:
   - split_test:
@@ -43,14 +28,15 @@ windows:
         - "echo 'pane1'; bash"
         - "echo 'pane2'; bash"
 "#,
-        temp_dir.path().display()
+        session.name(),
+        session.temp_dir().unwrap().display()
     );
     std::fs::write(&config_file, yaml_content).unwrap();
 
     // Start session
     let session_manager = SessionManager::new();
     let result = session_manager.start_session_with_options(
-        Some(session_name),
+        Some(session.name()),
         Some(&config_dir),
         false, // attach = false
         false, // append = false
@@ -61,7 +47,7 @@ windows:
     // with split panes where shells initialize properly (this was failing before our fix)
 
     // Just verify the session exists and has the expected structure
-    let session_exists = TmuxCommand::session_exists(session_name).unwrap();
+    let session_exists = session.exists().unwrap();
     assert!(
         session_exists,
         "Session with split panes should be created successfully"
@@ -73,4 +59,5 @@ windows:
     // - Split panes follow the same pattern
 
     println!("✓ Shell features in split panes test passed");
+    // Automatic cleanup via Drop trait
 }

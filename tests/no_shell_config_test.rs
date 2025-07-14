@@ -1,18 +1,9 @@
 mod common;
 
-use common::should_run_integration_tests;
+use common::{should_run_integration_tests, TmuxTestSession};
 use tempfile::TempDir;
 use tmuxrs::session::SessionManager;
 use tmuxrs::tmux::TmuxCommand;
-
-fn ensure_clean_tmux() {
-    if std::env::var("INTEGRATION_TESTS").unwrap_or_default() == "1" {
-        let _ = std::process::Command::new("tmux")
-            .arg("kill-server")
-            .output();
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-}
 
 #[test]
 fn test_no_shell_config_works_normally() {
@@ -21,32 +12,30 @@ fn test_no_shell_config_works_normally() {
         return;
     }
 
-    ensure_clean_tmux();
-
+    let session = TmuxTestSession::with_temp_dir("normal-test");
     let temp_dir = TempDir::new().unwrap();
     let config_dir = temp_dir.path().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
 
-    let session_name = "normal-test";
-
     // Create simple tmuxrs config without custom shell settings
-    let config_file = config_dir.join(format!("{session_name}.yml"));
+    let config_file = config_dir.join(format!("{}.yml", session.name()));
     let yaml_content = format!(
         r#"
-name: {session_name}
+name: {}
 root: {}
 windows:
   - normal_window: echo "normal session"
   - shell_window: bash
 "#,
-        temp_dir.path().display()
+        session.name(),
+        session.temp_dir().unwrap().display()
     );
     std::fs::write(&config_file, yaml_content).unwrap();
 
     // Start session
     let session_manager = SessionManager::new();
     let result = session_manager.start_session_with_options(
-        Some(session_name),
+        Some(session.name()),
         Some(&config_dir),
         false, // attach = false
         false, // append = false
@@ -54,14 +43,14 @@ windows:
     assert!(result.is_ok(), "Failed to start session: {result:?}");
 
     // Test that normal commands work
-    TmuxCommand::send_keys(session_name, "normal_window", "echo 'test normal'").unwrap();
+    TmuxCommand::send_keys(session.name(), "normal_window", "echo 'test normal'").unwrap();
     std::thread::sleep(std::time::Duration::from_millis(500));
 
     let output = std::process::Command::new("tmux")
         .args([
             "capture-pane",
             "-t",
-            &format!("{session_name}:normal_window"),
+            &format!("{}:normal_window", session.name()),
             "-p",
         ])
         .output()
@@ -73,14 +62,14 @@ windows:
     );
 
     // Test that standard shell features work
-    TmuxCommand::send_keys(session_name, "shell_window", "ls /").unwrap();
+    TmuxCommand::send_keys(session.name(), "shell_window", "ls /").unwrap();
     std::thread::sleep(std::time::Duration::from_millis(500));
 
     let output = std::process::Command::new("tmux")
         .args([
             "capture-pane",
             "-t",
-            &format!("{session_name}:shell_window"),
+            &format!("{}:shell_window", session.name()),
             "-p",
         ])
         .output()
@@ -92,4 +81,5 @@ windows:
     );
 
     println!("✓ No shell config works normally test passed");
+    // Automatic cleanup via Drop trait
 }

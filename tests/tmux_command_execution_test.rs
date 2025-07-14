@@ -1,17 +1,8 @@
 mod common;
 
-use common::should_run_integration_tests;
+use common::{should_run_integration_tests, TmuxTestSession};
 use tmuxrs::error::TmuxrsError;
 use tmuxrs::tmux::TmuxCommand;
-
-fn ensure_clean_tmux() {
-    if std::env::var("INTEGRATION_TESTS").unwrap_or_default() == "1" {
-        let _ = std::process::Command::new("tmux")
-            .arg("kill-server")
-            .output();
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-}
 
 #[test]
 fn test_tmux_command_execution() {
@@ -20,7 +11,7 @@ fn test_tmux_command_execution() {
         return;
     }
 
-    ensure_clean_tmux();
+    let _session = TmuxTestSession::new("command-execution");
 
     // Test basic tmux command execution
     let result = TmuxCommand::new().arg("list-sessions").execute();
@@ -39,4 +30,5 @@ fn test_tmux_command_execution() {
     }
 
     println!("✓ Tmux command execution test passed");
+    // Automatic cleanup via Drop trait
 }

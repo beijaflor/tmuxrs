@@ -1,16 +1,7 @@
 mod common;
 
-use common::should_run_integration_tests;
+use common::{should_run_integration_tests, TmuxTestSession};
 use tmuxrs::tmux::TmuxCommand;
-
-fn ensure_clean_tmux() {
-    if std::env::var("INTEGRATION_TESTS").unwrap_or_default() == "1" {
-        let _ = std::process::Command::new("tmux")
-            .arg("kill-server")
-            .output();
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-}
 
 #[test]
 fn test_session_exists_check() {
@@ -19,13 +10,30 @@ fn test_session_exists_check() {
         return;
     }
 
-    ensure_clean_tmux();
+    let session = TmuxTestSession::with_temp_dir("test-exists-check");
 
-    let session_name = "test-nonexistent-session-12345";
+    // Test that session doesn't exist before creation
+    assert!(
+        !session.exists().unwrap(),
+        "Session should not exist before creation"
+    );
 
-    // Test that a non-existent session returns false
-    let exists = TmuxCommand::session_exists(session_name).unwrap();
-    assert!(!exists, "Session should not exist");
+    // Create the session
+    session.create().unwrap();
+
+    // Test that session exists after creation
+    assert!(
+        session.exists().unwrap(),
+        "Session should exist after creation"
+    );
+
+    // Test with a completely different session name that doesn't exist
+    let nonexistent_exists = TmuxCommand::session_exists("test-nonexistent-session-12345").unwrap();
+    assert!(
+        !nonexistent_exists,
+        "Non-existent session should return false"
+    );
 
     println!("✓ Session existence check test passed");
+    // Automatic cleanup via Drop trait
 }
