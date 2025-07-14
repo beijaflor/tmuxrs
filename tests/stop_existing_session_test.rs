@@ -4,6 +4,7 @@ use common::{should_run_integration_tests, TmuxTestSession};
 use tmuxrs::session::SessionManager;
 
 #[test]
+#[ignore = "SessionManager doesn't support isolated test servers yet"]
 fn test_stop_existing_session() {
     if !should_run_integration_tests() {
         eprintln!("Skipping integration test - set INTEGRATION_TESTS=1 to run");

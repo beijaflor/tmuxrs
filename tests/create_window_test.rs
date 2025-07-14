@@ -19,8 +19,14 @@ fn test_create_window() {
     // Verify session exists
     assert!(session.exists().unwrap());
 
-    // Create a new window in the session
-    let result = TmuxCommand::new_window(session.name(), window_name, None, None);
+    // Create a new window in the session using the isolated socket
+    let result = TmuxCommand::new_window_with_socket(
+        session.name(),
+        window_name,
+        None,
+        None,
+        Some(session.socket_path()),
+    );
     assert!(result.is_ok(), "Failed to create window: {result:?}");
 
     println!("✓ Window creation test passed");

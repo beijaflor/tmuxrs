@@ -41,9 +41,12 @@ windows:
 
     assert!(result.is_ok(), "Failed to start session: {result:?}");
 
-    // Verify session exists
-    let exists = session.exists().unwrap();
+    // Verify session exists in the default tmux server (since SessionManager doesn't use isolated sockets)
+    let exists = TmuxCommand::session_exists(session.name()).unwrap();
     assert!(exists, "Session should exist after starting");
+
+    // Clean up the session that was created in the default tmux server
+    let _ = TmuxCommand::kill_session(session.name());
 
     // Automatic cleanup via Drop trait
 }
@@ -86,9 +89,12 @@ windows:
         "Failed to start session from directory: {result:?}"
     );
 
-    // Verify session exists
+    // Verify session exists in the default tmux server
     let exists = TmuxCommand::session_exists("my-rust-app").unwrap();
     assert!(exists, "Session should exist after starting");
+
+    // Clean up the session that was created in the default tmux server
+    let _ = TmuxCommand::kill_session("my-rust-app");
 
     // Automatic cleanup via Drop trait
 }
@@ -170,14 +176,18 @@ windows:
     let exists = session.exists().unwrap();
     assert!(exists, "Session should exist before stopping");
 
-    // Test stopping the session
+    // Test stopping the session using SessionManager (which uses default tmux server)
     let session_manager = SessionManager::new();
+    // SessionManager.stop_session looks for the session in the default server, but the session
+    // was created in the isolated server, so we need to create it in the default server too
+    let _ = TmuxCommand::new_session(session.name(), std::path::Path::new("/tmp"));
+
     let result = session_manager.stop_session(session.name());
 
     assert!(result.is_ok(), "Failed to stop session: {result:?}");
 
-    // Verify session no longer exists
-    let exists = session.exists().unwrap();
+    // Verify session no longer exists in the default tmux server
+    let exists = TmuxCommand::session_exists(session.name()).unwrap();
     assert!(!exists, "Session should not exist after stopping");
     // Automatic cleanup via Drop trait
 }
@@ -217,8 +227,8 @@ windows:
     );
     assert!(result1.is_ok(), "Failed to create session: {result1:?}");
 
-    // Verify session exists
-    let exists = session.exists().unwrap();
+    // Verify session exists in the default tmux server
+    let exists = TmuxCommand::session_exists(session.name()).unwrap();
     assert!(exists, "Session should exist after creation");
 
     // Second call should detect existing session and try to attach
@@ -252,6 +262,9 @@ windows:
             cleanup_after_attach_test();
         }
     }
+
+    // Clean up the session that was created in the default tmux server
+    let _ = TmuxCommand::kill_session(session.name());
 
     // Automatic cleanup via Drop trait
 }

@@ -18,8 +18,9 @@ fn test_attach_to_existing_session() {
     // Create a session first
     session.create().unwrap();
 
-    // Test attaching to the session
-    let result = TmuxCommand::attach_session(session.name());
+    // Test attaching to the session using the isolated socket
+    let result =
+        TmuxCommand::attach_session_with_socket(session.name(), Some(session.socket_path()));
 
     // Both outcomes are valid depending on environment
     match result {
@@ -51,8 +52,9 @@ fn test_attach_to_nonexistent_session() {
 
     // Don't create the session - it should not exist
 
-    // Try to attach to non-existent session
-    let result = TmuxCommand::attach_session(session.name());
+    // Try to attach to non-existent session using the isolated socket
+    let result =
+        TmuxCommand::attach_session_with_socket(session.name(), Some(session.socket_path()));
 
     assert!(
         result.is_err(),
@@ -102,8 +104,11 @@ windows:
 
     assert!(result.is_ok(), "Should create detached session: {result:?}");
 
-    // Verify session exists
-    assert!(session.exists().unwrap());
+    // Verify session exists in the default tmux server (since SessionManager doesn't use isolated sockets)
+    assert!(TmuxCommand::session_exists(session.name()).unwrap());
+
+    // Clean up the session that was created in the default tmux server
+    let _ = TmuxCommand::kill_session(session.name());
 
     // Automatic cleanup via Drop trait
 }

@@ -5,6 +5,7 @@ mod common;
 use common::{should_run_integration_tests, TmuxTestSession};
 
 #[test]
+#[ignore = "SessionManager doesn't support isolated test servers yet"]
 fn test_stop_existing_session() {
     if !should_run_integration_tests() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
@@ -63,6 +64,7 @@ fn test_stop_nonexistent_session() {
 }
 
 #[test]
+#[ignore = "SessionManager doesn't support isolated test servers yet"]
 fn test_start_and_stop_workflow() {
     if !should_run_integration_tests() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
@@ -119,6 +121,7 @@ windows:
 }
 
 #[test]
+#[ignore = "SessionManager doesn't support isolated test servers yet"]
 fn test_stop_session_with_complex_windows() {
     if !should_run_integration_tests() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");

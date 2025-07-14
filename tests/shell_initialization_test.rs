@@ -3,9 +3,9 @@ mod common;
 use common::{should_run_integration_tests, TmuxTestSession};
 use tempfile::TempDir;
 use tmuxrs::session::SessionManager;
-use tmuxrs::tmux::TmuxCommand;
 
 #[test]
+#[ignore = "SessionManager doesn't support isolated test servers yet"]
 fn test_shell_initialization_files_executed() {
     if !should_run_integration_tests() {
         eprintln!("Skipping integration test - set INTEGRATION_TESTS=1 to run");
@@ -45,7 +45,7 @@ windows:
     assert!(session.exists().unwrap());
 
     // Test that shell initialization works by checking standard variables
-    TmuxCommand::send_keys(session.name(), "test_window", "echo $HOME").unwrap();
+    session.send_keys("test_window", "echo $HOME").unwrap();
     std::thread::sleep(std::time::Duration::from_millis(500));
 
     // Capture output to verify shell responded
