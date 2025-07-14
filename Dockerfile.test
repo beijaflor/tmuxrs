@@ -20,8 +20,8 @@ RUN useradd -m -s /bin/bash testuser
 # Set working directory
 WORKDIR /app
 
-# Change ownership of the app directory
-RUN chown testuser:testuser /app
+# Change ownership of the app directory recursively
+RUN chown -R testuser:testuser /app
 
 # Set environment variables for testing
 ENV RUST_LOG=debug
