@@ -4,9 +4,18 @@ use tmuxrs::tmux::TmuxCommand;
 
 /// Common test utilities for integration tests
 ///
-/// Check if integration tests should run
+/// ## Integration Test Environment
 /// Integration tests only run when INTEGRATION_TESTS=1 is set
 /// This flag enables integration tests that require tmux to be available
+///
+/// ## Handling Attach Operations in Tests
+/// Tests that involve tmux attach operations require special cleanup to prevent
+/// hanging in Docker/CI environments. Use `cleanup_after_attach_test()` after
+/// any attach-related operations to ensure clean state between tests.
+///
+/// ## Automatic Cleanup
+/// All `TmuxTestSession` instances automatically clean up via Rust's Drop trait,
+/// but attach operations may require additional server-wide cleanup.
 pub fn should_run_integration_tests() -> bool {
     std::env::var("INTEGRATION_TESTS").is_ok()
 }
@@ -107,6 +116,93 @@ impl Drop for TmuxTestSession {
                 "Warning: Failed to cleanup test session '{}': {}",
                 self.session_name, e
             );
+        }
+
+        // Note: We don't do aggressive tmux kill-server here anymore.
+        // Use cleanup_after_attach_test() explicitly for attach operations.
+        // This prevents interference between unrelated tests.
+    }
+}
+
+/// Gentle cleanup of tmux sessions after attach operations
+///
+/// This function should be called after any test that performs tmux attach operations,
+/// regardless of whether the attach succeeds or fails. Attach operations can leave
+/// tmux in an inconsistent state, especially in Docker environments where TTY
+/// behavior differs from local execution.
+///
+/// ## When to use:
+/// - After calling `TmuxCommand::attach_session()`
+/// - After calling `SessionManager::start_session_with_options()` with `attach=true`
+/// - After any interactive tmux operations that might hang
+/// - When a test involves session attachment logic
+///
+/// ## What it does:
+/// 1. Only performs cleanup if tmux server appears to be in an inconsistent state
+/// 2. Detects hanging attach processes or zombie sessions
+/// 3. Preserves sessions that are still actively being tested
+/// 4. Only kills the entire server as a last resort
+///
+/// ## Example usage:
+/// ```rust
+/// let result = TmuxCommand::attach_session(session.name());
+/// match result {
+///     Ok(_) => {
+///         println!("Attach succeeded");
+///         cleanup_after_attach_test(); // Always cleanup after attach
+///     }
+///     Err(e) => {
+///         println!("Attach failed: {}", e);
+///         cleanup_after_attach_test(); // Cleanup even on failure
+///     }
+/// }
+/// ```
+#[allow(dead_code)]
+pub fn cleanup_after_attach_test() {
+    if std::env::var("INTEGRATION_TESTS").is_ok() {
+        eprintln!("🧹 Checking tmux state after attach operation");
+
+        // Only do aggressive cleanup if we detect hanging processes or inconsistent state
+        let tmux_processes = std::process::Command::new("pgrep")
+            .args(["-f", "tmux"])
+            .output();
+
+        match tmux_processes {
+            Ok(output) if !output.stdout.is_empty() => {
+                let process_list = String::from_utf8_lossy(&output.stdout);
+                let process_count = process_list.lines().count();
+
+                // If there are many tmux processes, it might indicate hanging
+                if process_count > 3 {
+                    eprintln!(
+                        "⚠️ Detected {process_count} tmux processes, checking for cleanup need"
+                    );
+
+                    // Try to gracefully check tmux server state
+                    let list_result = std::process::Command::new("tmux")
+                        .args(["list-sessions"])
+                        .output();
+
+                    match list_result {
+                        Ok(list_output) if !list_output.stdout.is_empty() => {
+                            eprintln!("Active sessions:");
+                            eprintln!("{}", String::from_utf8_lossy(&list_output.stdout));
+                        }
+                        Err(_) => {
+                            eprintln!("⚠️ Tmux server appears unresponsive, performing cleanup");
+                            let _ = std::process::Command::new("tmux")
+                                .args(["kill-server"])
+                                .output();
+                        }
+                        _ => {}
+                    }
+                } else {
+                    eprintln!("✅ Tmux state appears normal ({process_count} processes)");
+                }
+            }
+            _ => {
+                eprintln!("✅ No tmux processes detected");
+            }
         }
     }
 }

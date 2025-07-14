@@ -42,6 +42,13 @@ impl TmuxCommand {
     /// Execute tmux command interactively (inherits TTY for attach-session)
     #[allow(dead_code)]
     pub fn execute_interactive(self) -> Result<()> {
+        // Check if we're in a TTY environment - if not, return an error instead of hanging
+        if !Self::is_tty_available() {
+            return Err(TmuxrsError::TmuxError(
+                "Failed to attach: No TTY available (running in non-interactive environment like Docker)".to_string()
+            ));
+        }
+
         let mut child = Command::new("tmux")
             .args(&self.args)
             .stdin(Stdio::inherit())
@@ -62,6 +69,13 @@ impl TmuxCommand {
         }
 
         Ok(())
+    }
+
+    /// Check if TTY is available for interactive operations
+    #[allow(dead_code)]
+    fn is_tty_available() -> bool {
+        use std::io::IsTerminal;
+        std::io::stdin().is_terminal()
     }
 
     /// Check if a session exists
