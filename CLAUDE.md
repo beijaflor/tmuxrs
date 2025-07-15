@@ -24,10 +24,18 @@ src/
 
 ## Essential Commands
 - `cargo build` - Build the project
-- `cargo test` - Run tests
+- `cargo test` - Run unit tests only (integration tests automatically skip)
 - `cargo run -- start test` - Test session creation
 - `cargo clippy` - Lint code
 - `cargo fmt` - Format code
+
+### Integration Tests (Docker Only)
+- `docker compose run --rm integration-tests` - Run all tests including integration tests
+- `docker compose run --rm integration-tests bash -c "cargo test TEST_NAME"` - Run specific test
+- `docker compose build` - Build Docker test image
+- `docker compose down --volumes` - Clean up containers and volumes
+
+**Automatic Cleanup**: All integration tests use `TmuxTestSession` which automatically cleans up tmux sessions via Rust's Drop trait, ensuring no test artifacts persist between runs.
 
 ## MVP Implementation Order
 1. **CLI structure** (`clap` argument parsing)
@@ -90,13 +98,23 @@ windows:
 - Test error cases (missing configs, invalid YAML)
 - Manual testing checklist for session lifecycle
 
-### Shell Interaction Testing
-- `tests/shell_interaction_test.rs` - Comprehensive shell interaction tests
-- Tests shell initialization and environment inheritance
-- Validates that tmuxrs creates proper interactive shells
-- Ensures shell features (aliases, functions, variables) work correctly
-- Tests multi-pane sessions for independent shell states
-- Skipped in CI environments where tmux is not available
+### Integration Testing
+- **Automatic Skipping**: Integration tests always skip with `cargo test`
+- **Files**: All tests in `tests/` directory that use `TmuxCommand` or `SessionManager`
+- **Enable Flag**: Integration tests only run when `INTEGRATION_TESTS=1` is set
+- **Commands**: Use `docker compose run --rm integration-tests` to run integration tests
+- **Skip Logic**: Tests run only when `INTEGRATION_TESTS=1` environment variable is set
+
+### Docker Test Environment
+- **Files**: `Dockerfile.test`, `compose.yml`
+- **Purpose**: Provides isolated, reproducible test environment for integration tests
+- **Features**:
+  - Clean tmux environment for each test run
+  - Consistent Rust toolchain (1.80) and tmux version (3.3a)
+  - Shell interaction tests that were previously skipped in CI
+  - No test artifacts or sessions persist between runs
+- **Environment Variables**: 
+  - `INTEGRATION_TESTS=1` - Required for integration tests to run (automatically set in Docker)
 
 ## Documentation References
 - Architecture details: `docs/design/02-system-architecture.md`

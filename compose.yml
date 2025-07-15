@@ -1,0 +1,18 @@
+services:
+  integration-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - .:/app
+    environment:
+      - RUST_LOG=debug
+      - RUST_BACKTRACE=1
+      - INTEGRATION_TESTS=1
+      - TERM=xterm-256color
+      - TMUX_TMPDIR=/tmp
+      - CARGO_TARGET_DIR=/tmp/target
+    working_dir: /app
+    command: ["cargo", "test", "--target-dir", "/tmp/target"]
+    tty: false
+    stdin_open: false

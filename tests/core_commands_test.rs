@@ -1,37 +1,39 @@
-use tempfile::TempDir;
 use tmuxrs::config::Config;
 use tmuxrs::session::SessionManager;
 use tmuxrs::tmux::TmuxCommand;
 
+mod common;
+use common::{should_run_integration_tests, TmuxTestSession};
+
 #[test]
 fn test_start_command_with_explicit_name() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
 
-    let temp_dir = TempDir::new().unwrap();
-    let config_dir = temp_dir.path().join(".config").join("tmuxrs");
+    let session = TmuxTestSession::with_temp_dir("start-explicit");
+    let config_dir = session.temp_dir().unwrap().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
 
     // Create a test config
-    let config_file = config_dir.join("test-project.yml");
-    let yaml_content = r#"
-name: test-project
+    let config_file = config_dir.join(format!("{}.yml", session.name()));
+    let yaml_content = format!(
+        r#"
+name: {}
 root: /tmp
 windows:
   - editor: vim
   - server: echo "server starting"
-"#;
+"#,
+        session.name()
+    );
     std::fs::write(&config_file, yaml_content).unwrap();
-
-    // Clean up any existing session
-    let _ = TmuxCommand::kill_session("test-project");
 
     // Test starting with explicit name (detached for test environment)
     let session_manager = SessionManager::new();
     let result = session_manager.start_session_with_options(
-        Some("test-project"),
+        Some(session.name()),
         Some(&config_dir),
         false, // attach = false (for test environment)
         false, // append = false
@@ -40,24 +42,23 @@ windows:
     assert!(result.is_ok(), "Failed to start session: {result:?}");
 
     // Verify session exists
-    let exists = TmuxCommand::session_exists("test-project").unwrap();
+    let exists = session.exists().unwrap();
     assert!(exists, "Session should exist after starting");
 
-    // Clean up
-    let _ = TmuxCommand::kill_session("test-project");
+    // Automatic cleanup via Drop trait
 }
 
 #[test]
 fn test_start_command_with_directory_detection() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
-    let temp_dir = TempDir::new().unwrap();
-    let project_dir = temp_dir.path().join("my-rust-app");
+    let session = TmuxTestSession::with_temp_dir("directory-detection");
+    let project_dir = session.temp_dir().unwrap().join("my-rust-app");
     std::fs::create_dir(&project_dir).unwrap();
 
-    let config_dir = temp_dir.path().join(".config").join("tmuxrs");
+    let config_dir = session.temp_dir().unwrap().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
 
     // Create config for the detected project name
@@ -69,9 +70,6 @@ windows:
   - main: cargo run
 "#;
     std::fs::write(&config_file, yaml_content).unwrap();
-
-    // Clean up any existing session
-    let _ = TmuxCommand::kill_session("my-rust-app");
 
     // Test starting without explicit name (should detect from directory)
     let session_manager = SessionManager::new();
@@ -92,18 +90,17 @@ windows:
     let exists = TmuxCommand::session_exists("my-rust-app").unwrap();
     assert!(exists, "Session should exist after starting");
 
-    // Clean up
-    let _ = TmuxCommand::kill_session("my-rust-app");
+    // Automatic cleanup via Drop trait
 }
 
 #[test]
 fn test_list_command() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
-    let temp_dir = TempDir::new().unwrap();
-    let config_dir = temp_dir.path().join(".config").join("tmuxrs");
+    let session = TmuxTestSession::with_temp_dir("list-command");
+    let config_dir = session.temp_dir().unwrap().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
 
     // Create multiple test configs
@@ -140,75 +137,79 @@ windows:
     assert!(config_names.contains(&"web-app"));
     assert!(config_names.contains(&"api-server"));
     assert!(config_names.contains(&"data-pipeline"));
+    // Automatic cleanup via Drop trait
 }
 
 #[test]
 fn test_stop_command() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
-    let temp_dir = TempDir::new().unwrap();
-    let config_dir = temp_dir.path().join(".config").join("tmuxrs");
+    let session = TmuxTestSession::with_temp_dir("stop-command");
+    let config_dir = session.temp_dir().unwrap().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
 
     // Create and start a session first
-    let config_file = config_dir.join("stop-test.yml");
-    let yaml_content = r#"
-name: stop-test
+    let config_file = config_dir.join(format!("{}.yml", session.name()));
+    let yaml_content = format!(
+        r#"
+name: {}
 root: /tmp
 windows:
   - main: sleep 60
-"#;
+"#,
+        session.name()
+    );
     std::fs::write(&config_file, yaml_content).unwrap();
 
-    // Clean up and create session
-    let _ = TmuxCommand::kill_session("stop-test");
-    TmuxCommand::new_session("stop-test", temp_dir.path()).unwrap();
+    // Create session
+    session.create().unwrap();
 
     // Verify session exists
-    let exists = TmuxCommand::session_exists("stop-test").unwrap();
+    let exists = session.exists().unwrap();
     assert!(exists, "Session should exist before stopping");
 
     // Test stopping the session
     let session_manager = SessionManager::new();
-    let result = session_manager.stop_session("stop-test");
+    let result = session_manager.stop_session(session.name());
 
     assert!(result.is_ok(), "Failed to stop session: {result:?}");
 
     // Verify session no longer exists
-    let exists = TmuxCommand::session_exists("stop-test").unwrap();
+    let exists = session.exists().unwrap();
     assert!(!exists, "Session should not exist after stopping");
+    // Automatic cleanup via Drop trait
 }
 
 #[test]
 fn test_attach_or_create_session() {
-    // Skip tmux tests in CI environment
-    if std::env::var("CI").is_ok() {
+    if !should_run_integration_tests() {
+        eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
         return;
     }
-    let temp_dir = TempDir::new().unwrap();
-    let config_dir = temp_dir.path().join(".config").join("tmuxrs");
+    let session = TmuxTestSession::with_temp_dir("attach-create");
+    let config_dir = session.temp_dir().unwrap().join(".config").join("tmuxrs");
     std::fs::create_dir_all(&config_dir).unwrap();
 
-    let config_file = config_dir.join("attach-test.yml");
-    let yaml_content = r#"
-name: attach-test
+    let config_file = config_dir.join(format!("{}.yml", session.name()));
+    let yaml_content = format!(
+        r#"
+name: {}
 root: /tmp
 windows:
   - editor: vim
   - terminal: bash
-"#;
+"#,
+        session.name()
+    );
     std::fs::write(&config_file, yaml_content).unwrap();
-
-    // Clean up any existing session
-    let _ = TmuxCommand::kill_session("attach-test");
 
     let session_manager = SessionManager::new();
 
     // First call should create the session (detached for test environment)
     let result1 = session_manager.start_session_with_options(
-        Some("attach-test"),
+        Some(session.name()),
         Some(&config_dir),
         false, // attach = false (for test environment)
         false, // append = false
@@ -216,27 +217,36 @@ windows:
     assert!(result1.is_ok(), "Failed to create session: {result1:?}");
 
     // Verify session exists
-    let exists = TmuxCommand::session_exists("attach-test").unwrap();
+    let exists = session.exists().unwrap();
     assert!(exists, "Session should exist after creation");
 
-    // Second call should detect existing session and try to attach (fails in test env)
+    // Second call should detect existing session and try to attach
     let result2 = session_manager.start_session_with_options(
-        Some("attach-test"),
+        Some(session.name()),
         Some(&config_dir),
         true,  // attach = true (to test existing session attach behavior)
         false, // append = false
     );
-    assert!(
-        result2.is_err(),
-        "Should fail to attach to existing session in test environment: {result2:?}"
-    );
 
-    // Verify error message indicates attach failure
-    assert!(result2
-        .unwrap_err()
-        .to_string()
-        .contains("Failed to attach"));
+    // Both outcomes are valid depending on environment
+    match result2 {
+        Ok(msg) => {
+            // Attach succeeded - valid in TTY-enabled environments
+            assert!(
+                msg.contains("Attached to existing session"),
+                "Success message should indicate attach: {msg}"
+            );
+            println!("✓ Successfully attached to existing session (TTY available)");
+        }
+        Err(error) => {
+            // Attach failed - valid in non-TTY environments
+            assert!(
+                error.to_string().contains("Failed to attach"),
+                "Error should indicate attach failure: {error}"
+            );
+            println!("✓ Attach failed as expected in non-TTY environment");
+        }
+    }
 
-    // Clean up
-    let _ = TmuxCommand::kill_session("attach-test");
+    // Automatic cleanup via Drop trait
 }
