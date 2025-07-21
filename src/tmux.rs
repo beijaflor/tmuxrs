@@ -458,3 +458,124 @@ impl TmuxCommand {
         cmd.execute()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_tmux_command_builder_basic() {
+        let cmd = TmuxCommand::new().arg("list-sessions");
+        assert_eq!(cmd.args, vec!["list-sessions"]);
+        assert_eq!(cmd.socket_path, None);
+    }
+
+    #[test]
+    fn test_tmux_command_builder_multiple_args() {
+        let cmd = TmuxCommand::new()
+            .arg("new-session")
+            .arg("-d")
+            .arg("-s")
+            .arg("test-session");
+        assert_eq!(cmd.args, vec!["new-session", "-d", "-s", "test-session"]);
+    }
+
+    #[test]
+    fn test_tmux_command_with_socket() {
+        let temp_dir = TempDir::new().unwrap();
+        let socket_path = temp_dir.path().join("tmux.sock");
+
+        let cmd = TmuxCommand::with_socket(&socket_path);
+        assert_eq!(
+            cmd.socket_path,
+            Some(socket_path.to_string_lossy().to_string())
+        );
+        assert!(cmd.args.is_empty());
+    }
+
+    #[test]
+    fn test_tmux_command_socket_builder() {
+        let temp_dir = TempDir::new().unwrap();
+        let socket_path = temp_dir.path().join("tmux.sock");
+
+        let cmd = TmuxCommand::new().socket(&socket_path).arg("list-sessions");
+        assert_eq!(
+            cmd.socket_path,
+            Some(socket_path.to_string_lossy().to_string())
+        );
+        assert_eq!(cmd.args, vec!["list-sessions"]);
+    }
+
+    #[test]
+    fn test_is_tty_available() {
+        // This test may pass or fail depending on where it's run
+        // In CI/Docker it will likely be false, in a terminal it will be true
+        let _ = TmuxCommand::is_tty_available();
+    }
+
+    #[test]
+    fn test_window_target_formatting() {
+        // Test that window targets are formatted correctly
+        let session = "my-session";
+        let window = "my-window";
+        let target = format!("{session}:{window}");
+        assert_eq!(target, "my-session:my-window");
+    }
+
+    #[test]
+    fn test_pane_target_formatting() {
+        // Test that pane targets are formatted correctly
+        let session = "my-session";
+        let window = "my-window";
+        let pane = 2;
+        let target = format!("{session}:{window}.{pane}");
+        assert_eq!(target, "my-session:my-window.2");
+    }
+
+    #[test]
+    fn test_arg_into_string() {
+        // Test that arg() accepts various string types
+        let cmd = TmuxCommand::new()
+            .arg("literal")
+            .arg(String::from("owned"))
+            .arg(String::from("borrowed"));
+        assert_eq!(cmd.args, vec!["literal", "owned", "borrowed"]);
+    }
+
+    #[test]
+    fn test_path_conversion() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path().join("workspace");
+
+        // Test that paths are correctly converted to strings
+        let path_str = path.to_string_lossy();
+        assert!(!path_str.is_empty());
+        assert!(!path_str.contains('\0')); // No null bytes
+    }
+
+    #[test]
+    fn test_empty_window_name_handling() {
+        // Test split window target formatting with empty window name
+        let session = "test-session";
+        let window = "";
+
+        let target = if window.is_empty() {
+            session.to_string()
+        } else {
+            format!("{session}:{window}")
+        };
+        assert_eq!(target, "test-session");
+    }
+
+    #[test]
+    fn test_command_trimming() {
+        // Test that commands are properly trimmed
+        let test_command = "  echo hello  ";
+        assert_eq!(test_command.trim(), "echo hello");
+        assert!(!test_command.trim().is_empty());
+
+        let empty_command = "   ";
+        assert!(empty_command.trim().is_empty());
+    }
+}

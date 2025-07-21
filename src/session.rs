@@ -252,3 +252,145 @@ impl SessionManager {
         Ok(format!("Stopped session '{name}'"))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_expand_path_home_directory() {
+        // Test tilde expansion
+        let path = SessionManager::expand_path("~/projects").unwrap();
+        assert!(path.is_absolute());
+        assert!(!path.to_string_lossy().contains('~'));
+    }
+
+    #[test]
+    fn test_expand_path_environment_variable() {
+        // Set a test environment variable
+        env::set_var("TEST_PATH", "/tmp/test");
+
+        let path = SessionManager::expand_path("$TEST_PATH/project").unwrap();
+        assert_eq!(path.to_string_lossy(), "/tmp/test/project");
+
+        // Clean up
+        env::remove_var("TEST_PATH");
+    }
+
+    #[test]
+    fn test_expand_path_no_expansion_needed() {
+        // Test absolute path
+        let path = SessionManager::expand_path("/usr/local/bin").unwrap();
+        assert_eq!(path.to_string_lossy(), "/usr/local/bin");
+    }
+
+    #[test]
+    fn test_expand_path_combined() {
+        // Test combined tilde and env var
+        env::set_var("TEST_DIR", "mydir");
+
+        let path = SessionManager::expand_path("~/$TEST_DIR/project").unwrap();
+        assert!(path.is_absolute());
+        assert!(path.to_string_lossy().contains("mydir/project"));
+        assert!(!path.to_string_lossy().contains('~'));
+        assert!(!path.to_string_lossy().contains("$TEST_DIR"));
+
+        // Clean up
+        env::remove_var("TEST_DIR");
+    }
+
+    #[test]
+    fn test_list_configs_empty_directory() {
+        let temp_dir = TempDir::new().unwrap();
+        let manager = SessionManager::new();
+
+        let configs = manager.list_configs(Some(temp_dir.path())).unwrap();
+        assert_eq!(configs.len(), 0);
+    }
+
+    #[test]
+    fn test_list_configs_with_valid_files() {
+        let temp_dir = TempDir::new().unwrap();
+        let manager = SessionManager::new();
+
+        // Create valid YAML config files
+        let yaml1 = r#"
+name: project1
+root: ~/project1
+windows:
+  - editor: vim
+"#;
+        std::fs::write(temp_dir.path().join("project1.yml"), yaml1).unwrap();
+
+        let yaml2 = r#"
+name: project2
+root: ~/project2
+windows:
+  - server: npm start
+"#;
+        std::fs::write(temp_dir.path().join("project2.yaml"), yaml2).unwrap();
+
+        // Create a non-YAML file that should be ignored
+        std::fs::write(temp_dir.path().join("readme.txt"), "Not a config").unwrap();
+
+        let configs = manager.list_configs(Some(temp_dir.path())).unwrap();
+        assert_eq!(configs.len(), 2);
+
+        let names: Vec<String> = configs.iter().map(|c| c.name.clone()).collect();
+        assert!(names.contains(&"project1".to_string()));
+        assert!(names.contains(&"project2".to_string()));
+    }
+
+    #[test]
+    fn test_list_configs_skips_invalid_yaml() {
+        let temp_dir = TempDir::new().unwrap();
+        let manager = SessionManager::new();
+
+        // Create valid YAML
+        let valid = r#"
+name: valid
+root: ~/valid
+windows:
+  - editor: vim
+"#;
+        std::fs::write(temp_dir.path().join("valid.yml"), valid).unwrap();
+
+        // Create invalid YAML
+        std::fs::write(
+            temp_dir.path().join("invalid.yml"),
+            "invalid yaml content {{{",
+        )
+        .unwrap();
+
+        let configs = manager.list_configs(Some(temp_dir.path())).unwrap();
+        assert_eq!(configs.len(), 1);
+        assert_eq!(configs[0].name, "valid");
+    }
+
+    #[test]
+    fn test_session_name_validation() {
+        // Test various session name patterns
+        let temp_dir = TempDir::new().unwrap();
+
+        let test_cases = vec![
+            ("my-project", true),
+            ("web_app", true),
+            ("app123", true),
+            ("123app", true),
+            ("my.project", true),
+        ];
+
+        for (name, should_succeed) in test_cases {
+            let dir_path = temp_dir.path().join(name);
+            std::fs::create_dir(&dir_path).unwrap();
+
+            let result = Config::detect_session_name(Some(&dir_path));
+            if should_succeed {
+                assert!(result.is_ok(), "Failed for name: {name}");
+                assert_eq!(result.unwrap(), name);
+            }
+        }
+    }
+}
