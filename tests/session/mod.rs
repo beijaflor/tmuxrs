@@ -122,7 +122,8 @@ fn test_attach_to_existing_session() {
             // Expected in Docker/CI environments
             assert!(
                 error.to_string().contains("open terminal failed")
-                    || error.to_string().contains("not a terminal"),
+                    || error.to_string().contains("not a terminal")
+                    || error.to_string().contains("No TTY available"),
                 "Attach failure should be due to TTY issues: {error}"
             );
             cleanup_after_attach_test();
@@ -185,7 +186,7 @@ windows:
     std::fs::write(&config_file, yaml_content).unwrap();
 
     // Test starting session with attach = false
-    let session_manager = SessionManager::new();
+    let session_manager = SessionManager::with_socket(session.socket_path());
     let result = session_manager.start_session_with_options(
         Some(session.name()),
         Some(&config_dir),
@@ -198,12 +199,11 @@ windows:
         "Failed to start session without attach: {result:?}"
     );
 
-    // Verify session exists in default tmux server
-    let exists = TmuxCommand::session_exists(session.name()).unwrap();
+    // Verify session exists on isolated server
+    let exists = session.exists().unwrap();
     assert!(exists, "Session should exist after starting without attach");
 
-    // Clean up the session that was created in the default tmux server
-    let _ = TmuxCommand::kill_session(session.name());
+    // Session cleanup happens automatically via TmuxTestSession::Drop
 }
 
 #[test]
@@ -225,13 +225,13 @@ fn test_existing_session_with_attach() {
 name: {}
 root: /tmp
 windows:
-  - main: sleep 30
+  - main: sleep 1
 "#,
         session.name()
     );
     std::fs::write(&config_file, yaml_content).unwrap();
 
-    let session_manager = SessionManager::new();
+    let session_manager = SessionManager::with_socket(session.socket_path());
 
     // First create the session (detached)
     let create_result = session_manager.start_session_with_options(
@@ -245,8 +245,8 @@ windows:
         "Failed to create session: {create_result:?}"
     );
 
-    // Verify session exists
-    let exists = TmuxCommand::session_exists(session.name()).unwrap();
+    // Verify session exists on isolated server
+    let exists = session.exists().unwrap();
     assert!(exists, "Session should exist before attach attempt");
 
     // Now try to start existing session with attach = true
@@ -299,7 +299,7 @@ windows:
     std::fs::write(&config_file, yaml_content).unwrap();
 
     // Test starting a new session with attach = true
-    let session_manager = SessionManager::new();
+    let session_manager = SessionManager::with_socket(session.socket_path());
     let result = session_manager.start_session_with_options(
         Some(session.name()),
         Some(&config_dir),
@@ -324,7 +324,6 @@ windows:
 
 /// Session stopping tests (many ignored due to SessionManager isolation issues)
 #[test]
-#[ignore = "SessionManager doesn't support isolated test servers yet"]
 fn test_stop_existing_session() {
     if !should_run_integration_tests() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
@@ -348,7 +347,7 @@ windows:
     );
     std::fs::write(&config_file, yaml_content).unwrap();
 
-    let session_manager = SessionManager::new();
+    let session_manager = SessionManager::with_socket(session.socket_path());
 
     // Create session first
     let create_result = session_manager.start_session_with_options(
@@ -362,8 +361,8 @@ windows:
         "Failed to create session: {create_result:?}"
     );
 
-    // Verify session exists
-    let exists = TmuxCommand::session_exists(session.name()).unwrap();
+    // Verify session exists on isolated server
+    let exists = session.exists().unwrap();
     assert!(exists, "Session should exist before stopping");
 
     // Stop the session
@@ -374,7 +373,7 @@ windows:
     );
 
     // Verify session no longer exists
-    let exists_after = TmuxCommand::session_exists(session.name()).unwrap();
+    let exists_after = session.exists().unwrap();
     assert!(!exists_after, "Session should not exist after stopping");
 }
 
@@ -401,7 +400,6 @@ fn test_stop_nonexistent_session() {
 }
 
 #[test]
-#[ignore = "SessionManager doesn't support isolated test servers yet"]
 fn test_start_and_stop_workflow() {
     if !should_run_integration_tests() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
@@ -427,7 +425,7 @@ windows:
     );
     std::fs::write(&config_file, yaml_content).unwrap();
 
-    let session_manager = SessionManager::new();
+    let session_manager = SessionManager::with_socket(session.socket_path());
 
     // Step 1: Start session
     let start_result = session_manager.start_session_with_options(
@@ -441,8 +439,8 @@ windows:
         "Failed to start session: {start_result:?}"
     );
 
-    // Step 2: Verify session exists
-    let exists = TmuxCommand::session_exists(session.name()).unwrap();
+    // Step 2: Verify session exists on isolated server
+    let exists = session.exists().unwrap();
     assert!(exists, "Session should exist after starting");
 
     // Step 3: Stop session
@@ -453,12 +451,11 @@ windows:
     );
 
     // Step 4: Verify session no longer exists
-    let exists_after = TmuxCommand::session_exists(session.name()).unwrap();
+    let exists_after = session.exists().unwrap();
     assert!(!exists_after, "Session should not exist after stopping");
 }
 
 #[test]
-#[ignore = "SessionManager doesn't support isolated test servers yet"]
 fn test_stop_session_with_complex_windows() {
     if !should_run_integration_tests() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
@@ -493,7 +490,7 @@ windows:
     );
     std::fs::write(&config_file, yaml_content).unwrap();
 
-    let session_manager = SessionManager::new();
+    let session_manager = SessionManager::with_socket(session.socket_path());
 
     // Create the complex session
     let start_result = session_manager.start_session_with_options(
@@ -507,8 +504,8 @@ windows:
         "Failed to start complex session: {start_result:?}"
     );
 
-    // Verify session exists
-    let exists = TmuxCommand::session_exists(session.name()).unwrap();
+    // Verify session exists on isolated server
+    let exists = session.exists().unwrap();
     assert!(exists, "Complex session should exist after starting");
 
     // Stop the complex session
@@ -519,7 +516,7 @@ windows:
     );
 
     // Verify session completely removed
-    let exists_after = TmuxCommand::session_exists(session.name()).unwrap();
+    let exists_after = session.exists().unwrap();
     assert!(
         !exists_after,
         "Complex session should not exist after stopping"

@@ -10,8 +10,13 @@ fn test_tmux_command_execution() {
         return;
     }
 
-    // Test basic tmux command execution with list-sessions
-    let result = TmuxCommand::new().arg("list-sessions").execute();
+    // Create an isolated test environment
+    let session = TmuxTestSession::new("command-execution");
+
+    // Test basic tmux command execution with list-sessions on isolated server
+    let result = TmuxCommand::with_socket(session.socket_path())
+        .arg("list-sessions")
+        .execute();
 
     // Both success and "no sessions" error are valid outcomes
     match result {
@@ -20,10 +25,14 @@ fn test_tmux_command_execution() {
             // or be empty if none exist. The command succeeded, that's what matters.
         }
         Err(TmuxrsError::TmuxError(msg)) => {
-            // This is expected when no sessions exist
+            // This is expected when no sessions exist on the isolated server
             assert!(
-                msg.contains("no server running") || msg.contains("failed to connect"),
-                "Error should indicate no tmux server: {msg}"
+                msg.contains("no server running")
+                    || msg.contains("failed to connect")
+                    || msg.contains("no sessions")
+                    || msg.contains("error connecting to")
+                    || msg.contains("No such file or directory"),
+                "Error should indicate no tmux server or sessions: {msg}"
             );
         }
         Err(other) => {
@@ -40,9 +49,12 @@ fn test_session_exists_check() {
         return;
     }
 
+    // Create an isolated test environment
+    let session = TmuxTestSession::new("nonexistent-check");
+
     // Test checking for a session that definitely doesn't exist
     let session_name = "test-nonexistent-session-12345";
-    let result = TmuxCommand::session_exists(session_name);
+    let result = TmuxCommand::session_exists_with_socket(session_name, Some(session.socket_path()));
 
     assert!(
         result.is_ok(),

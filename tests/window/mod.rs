@@ -46,7 +46,6 @@ fn test_create_window() {
 
 /// Tests for window layout management with SessionManager (using configs)
 #[test]
-#[ignore = "SessionManager doesn't support isolated test servers yet"]
 fn test_session_with_main_vertical_layout() {
     if !should_run_integration_tests() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
@@ -74,7 +73,7 @@ windows:
     );
     std::fs::write(&config_file, yaml_content).unwrap();
 
-    let session_manager = SessionManager::new();
+    let session_manager = SessionManager::with_socket(session.socket_path());
     let result = session_manager.start_session_with_options(
         Some(session.name()),
         Some(&config_dir),
@@ -87,16 +86,14 @@ windows:
         "Failed to create session with main-vertical layout: {result:?}"
     );
 
-    // Verify session exists
-    let exists = TmuxCommand::session_exists(session.name()).unwrap();
+    // Verify session exists on isolated server
+    let exists = session.exists().unwrap();
     assert!(exists, "Session with main-vertical layout should exist");
 
-    // Clean up the session created in default tmux server
-    let _ = TmuxCommand::kill_session(session.name());
+    // Session cleanup happens automatically via TmuxTestSession::Drop
 }
 
 #[test]
-#[ignore = "SessionManager doesn't support isolated test servers yet"]
 fn test_session_with_main_horizontal_layout() {
     if !should_run_integration_tests() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
@@ -124,7 +121,7 @@ windows:
     );
     std::fs::write(&config_file, yaml_content).unwrap();
 
-    let session_manager = SessionManager::new();
+    let session_manager = SessionManager::with_socket(session.socket_path());
     let result = session_manager.start_session_with_options(
         Some(session.name()),
         Some(&config_dir),
@@ -137,16 +134,14 @@ windows:
         "Failed to create session with main-horizontal layout: {result:?}"
     );
 
-    // Verify session exists
-    let exists = TmuxCommand::session_exists(session.name()).unwrap();
+    // Verify session exists on isolated server
+    let exists = session.exists().unwrap();
     assert!(exists, "Session with main-horizontal layout should exist");
 
-    // Clean up the session created in default tmux server
-    let _ = TmuxCommand::kill_session(session.name());
+    // Session cleanup happens automatically via TmuxTestSession::Drop
 }
 
 #[test]
-#[ignore = "SessionManager doesn't support isolated test servers yet"]
 fn test_session_with_tiled_layout() {
     if !should_run_integration_tests() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
@@ -176,7 +171,7 @@ windows:
     );
     std::fs::write(&config_file, yaml_content).unwrap();
 
-    let session_manager = SessionManager::new();
+    let session_manager = SessionManager::with_socket(session.socket_path());
     let result = session_manager.start_session_with_options(
         Some(session.name()),
         Some(&config_dir),
@@ -189,12 +184,11 @@ windows:
         "Failed to create session with tiled layout: {result:?}"
     );
 
-    // Verify session exists
-    let exists = TmuxCommand::session_exists(session.name()).unwrap();
+    // Verify session exists on isolated server
+    let exists = session.exists().unwrap();
     assert!(exists, "Session with tiled layout should exist");
 
-    // Clean up the session created in default tmux server
-    let _ = TmuxCommand::kill_session(session.name());
+    // Session cleanup happens automatically via TmuxTestSession::Drop
 }
 
 /// Tests for direct window splitting operations (using isolated tmux servers)
