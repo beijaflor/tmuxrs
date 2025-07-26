@@ -260,7 +260,9 @@ fn test_command_building_and_error_handling() {
             assert!(
                 msg.contains("no server running")
                     || msg.contains("failed to connect")
-                    || msg.contains("can't find"),
+                    || msg.contains("can't find")
+                    || msg.contains("error connecting to")
+                    || msg.contains("No such file or directory"),
                 "Error should indicate no sessions/server: {msg}"
             );
         }

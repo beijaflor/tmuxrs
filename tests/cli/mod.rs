@@ -108,8 +108,8 @@ windows:
     );
     std::fs::write(&config_file, yaml_content).unwrap();
 
-    // Test starting with explicit name (detached for test environment)
-    let session_manager = SessionManager::new();
+    // Test starting with explicit name using isolated tmux server
+    let session_manager = SessionManager::with_socket(session.socket_path());
     let result = session_manager.start_session_with_options(
         Some(session.name()),
         Some(&config_dir),
@@ -119,12 +119,11 @@ windows:
 
     assert!(result.is_ok(), "Failed to start session: {result:?}");
 
-    // Verify session exists in the default tmux server (since SessionManager doesn't use isolated sockets)
-    let exists = TmuxCommand::session_exists(session.name()).unwrap();
+    // Verify session exists in the isolated tmux server
+    let exists = session.exists().unwrap();
     assert!(exists, "Session should exist after starting");
 
-    // Clean up the session that was created in the default tmux server
-    let _ = TmuxCommand::kill_session(session.name());
+    // No manual cleanup needed - TmuxTestSession's Drop trait handles it
 }
 
 #[test]
@@ -151,7 +150,7 @@ windows:
     std::fs::write(&config_file, yaml_content).unwrap();
 
     // Test starting without explicit name (should detect from directory)
-    let session_manager = SessionManager::new();
+    let session_manager = SessionManager::with_socket(session.socket_path());
     let session_name = Config::detect_session_name(Some(&project_dir)).unwrap();
     let result = session_manager.start_session_with_options(
         Some(&session_name),
@@ -165,12 +164,13 @@ windows:
         "Failed to start session from directory: {result:?}"
     );
 
-    // Verify session exists in the default tmux server
-    let exists = TmuxCommand::session_exists("my-rust-app").unwrap();
+    // Verify session exists in the isolated tmux server
+    let exists =
+        TmuxCommand::session_exists_with_socket("my-rust-app", Some(session.socket_path()))
+            .unwrap();
     assert!(exists, "Session should exist after starting");
 
-    // Clean up the session that was created in the default tmux server
-    let _ = TmuxCommand::kill_session("my-rust-app");
+    // No manual cleanup needed - TmuxTestSession's Drop trait handles it
 }
 
 #[test]
@@ -249,18 +249,14 @@ windows:
     let exists = session.exists().unwrap();
     assert!(exists, "Session should exist before stopping");
 
-    // Test stopping the session using SessionManager (which uses default tmux server)
-    let session_manager = SessionManager::new();
-    // SessionManager.stop_session looks for the session in the default server, but the session
-    // was created in the isolated server, so we need to create it in the default server too
-    let _ = TmuxCommand::new_session(session.name(), std::path::Path::new("/tmp"));
-
+    // Test stopping the session using SessionManager with isolated server
+    let session_manager = SessionManager::with_socket(session.socket_path());
     let result = session_manager.stop_session(session.name());
 
     assert!(result.is_ok(), "Failed to stop session: {result:?}");
 
-    // Verify session no longer exists in the default tmux server
-    let exists = TmuxCommand::session_exists(session.name()).unwrap();
+    // Verify session no longer exists in the isolated tmux server
+    let exists = session.exists().unwrap();
     assert!(!exists, "Session should not exist after stopping");
 }
 
@@ -288,7 +284,7 @@ windows:
     );
     std::fs::write(&config_file, yaml_content).unwrap();
 
-    let session_manager = SessionManager::new();
+    let session_manager = SessionManager::with_socket(session.socket_path());
 
     // First call should create the session (detached for test environment)
     let result1 = session_manager.start_session_with_options(
@@ -299,8 +295,8 @@ windows:
     );
     assert!(result1.is_ok(), "Failed to create session: {result1:?}");
 
-    // Verify session exists in the default tmux server
-    let exists = TmuxCommand::session_exists(session.name()).unwrap();
+    // Verify session exists in the isolated tmux server
+    let exists = session.exists().unwrap();
     assert!(exists, "Session should exist after creation");
 
     // Second call should detect existing session and try to attach
@@ -335,6 +331,5 @@ windows:
         }
     }
 
-    // Clean up the session that was created in the default tmux server
-    let _ = TmuxCommand::kill_session(session.name());
+    // No manual cleanup needed - TmuxTestSession's Drop trait handles it
 }

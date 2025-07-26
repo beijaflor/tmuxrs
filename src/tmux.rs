@@ -249,13 +249,36 @@ impl TmuxCommand {
         pane_index: usize,
         keys: &str,
     ) -> Result<String> {
-        Self::new()
+        Self::send_keys_to_pane_with_socket(
+            session_name,
+            window_name,
+            pane_index,
+            keys,
+            None::<&Path>,
+        )
+    }
+
+    /// Send keys to a specific pane using a specific socket
+    #[allow(dead_code)]
+    pub fn send_keys_to_pane_with_socket<P: AsRef<Path>>(
+        session_name: &str,
+        window_name: &str,
+        pane_index: usize,
+        keys: &str,
+        socket_path: Option<P>,
+    ) -> Result<String> {
+        let mut cmd = Self::new()
             .arg("send-keys")
             .arg("-t")
             .arg(format!("{session_name}:{window_name}.{pane_index}"))
             .arg(keys)
-            .arg("Enter")
-            .execute()
+            .arg("Enter");
+
+        if let Some(socket) = socket_path {
+            cmd = cmd.socket(socket);
+        }
+
+        cmd.execute()
     }
 
     /// Kill a session

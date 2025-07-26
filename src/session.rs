@@ -5,12 +5,22 @@ use std::path::{Path, PathBuf};
 
 /// Session manager for tmuxrs
 #[derive(Default)]
-pub struct SessionManager;
+pub struct SessionManager {
+    socket_path: Option<PathBuf>,
+}
 
 impl SessionManager {
     /// Create a new session manager
     pub fn new() -> Self {
-        Self
+        Self { socket_path: None }
+    }
+
+    /// Create a new session manager with a custom socket path
+    #[allow(dead_code)]
+    pub fn with_socket<P: AsRef<Path>>(socket_path: P) -> Self {
+        Self {
+            socket_path: Some(socket_path.as_ref().to_path_buf()),
+        }
     }
 
     /// Expand tilde (~) and environment variables in paths using shellexpand
@@ -46,7 +56,7 @@ impl SessionManager {
         };
 
         // Check if session already exists
-        if TmuxCommand::session_exists(&session_name)? {
+        if TmuxCommand::session_exists_with_socket(&session_name, self.socket_path.as_ref())? {
             if append {
                 // TODO: Implement append functionality in Phase 2
                 return Err(TmuxrsError::TmuxError(
@@ -54,7 +64,10 @@ impl SessionManager {
                 ));
             } else if attach {
                 // Attach to existing session
-                match TmuxCommand::attach_session(&session_name) {
+                match TmuxCommand::attach_session_with_socket(
+                    &session_name,
+                    self.socket_path.as_ref(),
+                ) {
                     Ok(()) => {
                         // This line should never be reached in practice because
                         // successful attach takes over the terminal process
@@ -84,7 +97,7 @@ impl SessionManager {
         // Create session
         let root_dir = config.root.as_deref().unwrap_or("~");
         let root_path = Self::expand_path(root_dir)?;
-        TmuxCommand::new_session(&session_name, &root_path)?;
+        TmuxCommand::new_session_with_socket(&session_name, &root_path, self.socket_path.as_ref())?;
 
         // Create windows
         for (index, window_config) in config.windows.iter().enumerate() {
@@ -92,40 +105,53 @@ impl SessionManager {
                 crate::config::WindowConfig::Simple(command) => {
                     let window_name = format!("window-{}", index + 1);
                     // Create window without command to allow proper shell initialization
-                    TmuxCommand::new_window(
+                    TmuxCommand::new_window_with_socket(
                         &session_name,
                         &window_name,
                         None, // No command - let shell initialize properly
                         Some(&root_path),
+                        self.socket_path.as_ref(),
                     )?;
                     // Send command after window is created
                     if !command.trim().is_empty() {
-                        TmuxCommand::send_keys(&session_name, &window_name, command)?;
+                        TmuxCommand::send_keys_with_socket(
+                            &session_name,
+                            &window_name,
+                            command,
+                            self.socket_path.as_ref(),
+                        )?;
                     }
                 }
                 crate::config::WindowConfig::Complex { window } => {
                     for (window_name, command) in window {
                         // Create window without command to allow proper shell initialization
-                        TmuxCommand::new_window(
+                        TmuxCommand::new_window_with_socket(
                             &session_name,
                             window_name,
                             None, // No command - let shell initialize properly
                             Some(&root_path),
+                            self.socket_path.as_ref(),
                         )?;
                         // Send command after window is created
                         if !command.trim().is_empty() {
-                            TmuxCommand::send_keys(&session_name, window_name, command)?;
+                            TmuxCommand::send_keys_with_socket(
+                                &session_name,
+                                window_name,
+                                command,
+                                self.socket_path.as_ref(),
+                            )?;
                         }
                     }
                 }
                 crate::config::WindowConfig::WithLayout { window } => {
                     for (window_name, layout_config) in window {
                         // Create the window without command to allow proper shell initialization
-                        TmuxCommand::new_window(
+                        TmuxCommand::new_window_with_socket(
                             &session_name,
                             window_name,
                             None, // No command - let shell initialize properly
                             Some(&root_path),
+                            self.socket_path.as_ref(),
                         )?;
 
                         // Send first pane command if not empty
@@ -135,7 +161,12 @@ impl SessionManager {
                             )
                         })?;
                         if !first_pane.trim().is_empty() {
-                            TmuxCommand::send_keys(&session_name, window_name, first_pane)?;
+                            TmuxCommand::send_keys_with_socket(
+                                &session_name,
+                                window_name,
+                                first_pane,
+                                self.socket_path.as_ref(),
+                            )?;
                         }
 
                         // Add additional panes by splitting
@@ -143,28 +174,35 @@ impl SessionManager {
                             layout_config.panes.iter().skip(1).enumerate()
                         {
                             // Create split without command to allow proper shell initialization
-                            TmuxCommand::split_window_horizontal(
+                            TmuxCommand::split_window_horizontal_with_socket(
                                 &session_name,
                                 window_name,
                                 "", // Empty command - shell will initialize properly
                                 Some(&root_path),
+                                self.socket_path.as_ref(),
                             )?;
                             // Send command to the new pane after it's created
                             // Pane indices start at 0, first pane is 0, second is 1, etc.
                             let target_pane_index = pane_index + 1; // +1 because we skipped the first pane
                             if !pane_command.trim().is_empty() {
-                                TmuxCommand::send_keys_to_pane(
+                                TmuxCommand::send_keys_to_pane_with_socket(
                                     &session_name,
                                     window_name,
                                     target_pane_index,
                                     pane_command,
+                                    self.socket_path.as_ref(),
                                 )?;
                             }
                         }
 
                         // Apply layout if specified
                         if let Some(layout) = &layout_config.layout {
-                            TmuxCommand::select_layout(&session_name, window_name, layout)?;
+                            TmuxCommand::select_layout_with_socket(
+                                &session_name,
+                                window_name,
+                                layout,
+                                self.socket_path.as_ref(),
+                            )?;
                         }
                     }
                 }
@@ -173,7 +211,8 @@ impl SessionManager {
 
         // Handle attachment
         if attach {
-            match TmuxCommand::attach_session(&session_name) {
+            match TmuxCommand::attach_session_with_socket(&session_name, self.socket_path.as_ref())
+            {
                 Ok(()) => {
                     // This line should never be reached in practice because
                     // successful attach takes over the terminal process
@@ -242,13 +281,13 @@ impl SessionManager {
     /// Stop a session
     pub fn stop_session(&self, name: &str) -> Result<String> {
         // Check if session exists first
-        if !TmuxCommand::session_exists(name)? {
+        if !TmuxCommand::session_exists_with_socket(name, self.socket_path.as_ref())? {
             return Err(TmuxrsError::TmuxError(format!(
                 "Session '{name}' does not exist"
             )));
         }
 
-        TmuxCommand::kill_session(name)?;
+        TmuxCommand::kill_session_with_socket(name, self.socket_path.as_ref())?;
         Ok(format!("Stopped session '{name}'"))
     }
 }
