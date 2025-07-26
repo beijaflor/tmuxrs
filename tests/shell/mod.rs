@@ -87,8 +87,6 @@ windows:
 
     // Clean up the session created in default tmux server
     let _ = TmuxCommand::kill_session(session.name());
-
-    println!("✓ Environment inheritance test passed");
 }
 
 /// Tests for interactive shell features like aliases and functions
@@ -133,6 +131,8 @@ windows:
     // Test shell alias functionality
     let alias_cmd = TmuxCommand::send_keys(session.name(), "main", "alias ll='ls -la'");
     assert!(alias_cmd.is_ok(), "Failed to create alias: {alias_cmd:?}");
+    let enter_cmd = TmuxCommand::send_keys(session.name(), "main", "Enter");
+    assert!(enter_cmd.is_ok(), "Failed to send Enter: {enter_cmd:?}");
 
     thread::sleep(Duration::from_millis(200));
 
@@ -141,6 +141,8 @@ windows:
         use_alias_cmd.is_ok(),
         "Failed to use alias: {use_alias_cmd:?}"
     );
+    let enter_cmd = TmuxCommand::send_keys(session.name(), "main", "Enter");
+    assert!(enter_cmd.is_ok(), "Failed to send Enter: {enter_cmd:?}");
 
     thread::sleep(Duration::from_millis(200));
 
@@ -154,6 +156,8 @@ windows:
         function_cmd.is_ok(),
         "Failed to define function: {function_cmd:?}"
     );
+    let enter_cmd = TmuxCommand::send_keys(session.name(), "main", "Enter");
+    assert!(enter_cmd.is_ok(), "Failed to send Enter: {enter_cmd:?}");
 
     thread::sleep(Duration::from_millis(200));
 
@@ -162,6 +166,8 @@ windows:
         call_function_cmd.is_ok(),
         "Failed to call function: {call_function_cmd:?}"
     );
+    let enter_cmd = TmuxCommand::send_keys(session.name(), "main", "Enter");
+    assert!(enter_cmd.is_ok(), "Failed to send Enter: {enter_cmd:?}");
 
     thread::sleep(Duration::from_millis(200));
 
@@ -185,8 +191,6 @@ windows:
 
     // Clean up the session created in default tmux server
     let _ = TmuxCommand::kill_session(session.name());
-
-    println!("✓ Interactive shell features test passed");
 }
 
 /// Tests for shell command execution from config and additional commands
@@ -275,8 +279,6 @@ windows:
 
     // Clean up the session created in default tmux server
     let _ = TmuxCommand::kill_session(session.name());
-
-    println!("✓ Shell command execution test passed");
 }
 
 /// Tests for shell features in split panes (currently ignored due to SessionManager limitations)
@@ -356,8 +358,6 @@ windows:
 
     // Clean up the session created in default tmux server
     let _ = TmuxCommand::kill_session(session.name());
-
-    println!("✓ Shell features in split panes test passed");
 }
 
 /// Tests for shell initialization files and environment (currently ignored due to SessionManager limitations)
@@ -435,8 +435,6 @@ windows:
 
     // Clean up the session created in default tmux server
     let _ = TmuxCommand::kill_session(session.name());
-
-    println!("✓ Shell initialization test passed");
 }
 
 /// Tests for shell state independence between windows
@@ -557,8 +555,6 @@ windows:
 
     // Clean up the session created in default tmux server
     let _ = TmuxCommand::kill_session(session.name());
-
-    println!("✓ Shell state independence test passed");
 }
 
 /// Tests for normal operation without custom shell configuration
@@ -651,6 +647,4 @@ windows:
 
     // Clean up the session created in default tmux server
     let _ = TmuxCommand::kill_session(session.name());
-
-    println!("✓ No shell config test passed");
 }

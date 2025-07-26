@@ -315,7 +315,6 @@ windows:
                 msg.contains("Attached to existing session"),
                 "Success message should indicate attach: {msg}"
             );
-            println!("✓ Successfully attached to existing session (TTY available)");
             // Always cleanup after attach operations to prevent hanging
             cleanup_after_attach_test();
         }
@@ -325,7 +324,6 @@ windows:
                 error.to_string().contains("Failed to attach"),
                 "Error should indicate attach failure: {error}"
             );
-            println!("✓ Attach failed as expected in non-TTY environment");
             // Cleanup after failed attach to ensure clean state
             cleanup_after_attach_test();
         }

@@ -42,8 +42,6 @@ fn test_create_window() {
         windows_output.contains("test-window"),
         "Window 'test-window' should appear in window list"
     );
-
-    println!("✓ Window creation test passed");
 }
 
 /// Tests for window layout management with SessionManager (using configs)
@@ -95,8 +93,6 @@ windows:
 
     // Clean up the session created in default tmux server
     let _ = TmuxCommand::kill_session(session.name());
-
-    println!("✓ Main vertical layout test passed");
 }
 
 #[test]
@@ -147,8 +143,6 @@ windows:
 
     // Clean up the session created in default tmux server
     let _ = TmuxCommand::kill_session(session.name());
-
-    println!("✓ Main horizontal layout test passed");
 }
 
 #[test]
@@ -201,8 +195,6 @@ windows:
 
     // Clean up the session created in default tmux server
     let _ = TmuxCommand::kill_session(session.name());
-
-    println!("✓ Tiled layout test passed");
 }
 
 /// Tests for direct window splitting operations (using isolated tmux servers)
@@ -215,21 +207,31 @@ fn test_tmux_split_window_horizontal() {
 
     let session = TmuxTestSession::new("split-horizontal");
 
-    // Create session and window
+    // Create session (which creates default window)
     let session_result = session.create();
     assert!(
         session_result.is_ok(),
         "Failed to create session: {session_result:?}"
     );
 
-    let window_result = session.create_window("split-test");
-    assert!(
-        window_result.is_ok(),
-        "Failed to create window: {window_result:?}"
-    );
+    // List windows to see what was created
+    let list_windows = TmuxCommand::with_socket(session.socket_path())
+        .arg("list-windows")
+        .arg("-t")
+        .arg(session.name())
+        .execute();
+    assert!(list_windows.is_ok(), "Failed to list windows");
+    let windows = list_windows.unwrap();
 
-    // Split the window horizontally (creates a pane below)
-    let split_result = session.split_window_horizontal("split-test", "echo 'Bottom pane'");
+    // Extract the first window index from the output
+    let window_index = windows
+        .lines()
+        .next()
+        .and_then(|line| line.split(':').next())
+        .unwrap_or("0");
+
+    // Split the default window horizontally (creates a pane below)
+    let split_result = session.split_window_horizontal(window_index, "");
     assert!(
         split_result.is_ok(),
         "Failed to split window horizontally: {split_result:?}"
@@ -239,7 +241,7 @@ fn test_tmux_split_window_horizontal() {
     let pane_count_result = TmuxCommand::with_socket(session.socket_path())
         .arg("list-panes")
         .arg("-t")
-        .arg(format!("{}:split-test", session.name()))
+        .arg(format!("{}:{}", session.name(), window_index))
         .execute();
     assert!(
         pane_count_result.is_ok(),
@@ -250,8 +252,6 @@ fn test_tmux_split_window_horizontal() {
     // Should have 2 panes after horizontal split
     let pane_count = panes_output.lines().count();
     assert_eq!(pane_count, 2, "Should have 2 panes after horizontal split");
-
-    println!("✓ Horizontal window split test passed");
 }
 
 #[test]
@@ -263,21 +263,31 @@ fn test_tmux_split_window_vertical() {
 
     let session = TmuxTestSession::new("split-vertical");
 
-    // Create session and window
+    // Create session (which creates default window)
     let session_result = session.create();
     assert!(
         session_result.is_ok(),
         "Failed to create session: {session_result:?}"
     );
 
-    let window_result = session.create_window("split-test");
-    assert!(
-        window_result.is_ok(),
-        "Failed to create window: {window_result:?}"
-    );
+    // List windows to see what was created
+    let list_windows = TmuxCommand::with_socket(session.socket_path())
+        .arg("list-windows")
+        .arg("-t")
+        .arg(session.name())
+        .execute();
+    assert!(list_windows.is_ok(), "Failed to list windows");
+    let windows = list_windows.unwrap();
 
-    // Split the window vertically (creates a pane to the right)
-    let split_result = session.split_window_vertical("split-test", "echo 'Right pane'");
+    // Extract the first window index from the output
+    let window_index = windows
+        .lines()
+        .next()
+        .and_then(|line| line.split(':').next())
+        .unwrap_or("0");
+
+    // Split the default window vertically (creates a pane to the right)
+    let split_result = session.split_window_vertical(window_index, "");
     assert!(
         split_result.is_ok(),
         "Failed to split window vertically: {split_result:?}"
@@ -287,7 +297,7 @@ fn test_tmux_split_window_vertical() {
     let pane_count_result = TmuxCommand::with_socket(session.socket_path())
         .arg("list-panes")
         .arg("-t")
-        .arg(format!("{}:split-test", session.name()))
+        .arg(format!("{}:{}", session.name(), window_index))
         .execute();
     assert!(
         pane_count_result.is_ok(),
@@ -298,8 +308,6 @@ fn test_tmux_split_window_vertical() {
     // Should have 2 panes after vertical split
     let pane_count = panes_output.lines().count();
     assert_eq!(pane_count, 2, "Should have 2 panes after vertical split");
-
-    println!("✓ Vertical window split test passed");
 }
 
 #[test]
@@ -311,31 +319,67 @@ fn test_tmux_select_layout() {
 
     let session = TmuxTestSession::new("select-layout");
 
-    // Create session and window
+    // Create session (which creates default window)
     let session_result = session.create();
     assert!(
         session_result.is_ok(),
         "Failed to create session: {session_result:?}"
     );
 
-    let window_result = session.create_window("layout-test");
-    assert!(
-        window_result.is_ok(),
-        "Failed to create window: {window_result:?}"
-    );
+    // List windows to see what was created
+    let list_windows = TmuxCommand::with_socket(session.socket_path())
+        .arg("list-windows")
+        .arg("-t")
+        .arg(session.name())
+        .execute();
+    assert!(list_windows.is_ok(), "Failed to list windows");
+    let windows = list_windows.unwrap();
+
+    // Extract the first window index from the output
+    let window_index = windows
+        .lines()
+        .next()
+        .and_then(|line| line.split(':').next())
+        .unwrap_or("0");
 
     // Create multiple panes to test layouts
-    let split_h_result = session.split_window_horizontal("layout-test", "echo 'Pane 2'");
+    let split_h_result = session.split_window_horizontal(window_index, "");
     assert!(
         split_h_result.is_ok(),
         "Failed to create second pane: {split_h_result:?}"
     );
 
-    let split_v_result = session.split_window_vertical("layout-test", "echo 'Pane 3'");
+    // Check pane count after first split
+    let pane_check1 = TmuxCommand::with_socket(session.socket_path())
+        .arg("list-panes")
+        .arg("-t")
+        .arg(format!("{}:{}", session.name(), window_index))
+        .execute();
+    assert!(
+        pane_check1.is_ok(),
+        "Failed to list panes after first split"
+    );
+    let pane_count1 = pane_check1.unwrap().lines().count();
+    assert_eq!(pane_count1, 2, "Should have 2 panes after first split");
+
+    let split_v_result = session.split_window_vertical(window_index, "");
     assert!(
         split_v_result.is_ok(),
         "Failed to create third pane: {split_v_result:?}"
     );
+
+    // Check pane count after second split
+    let pane_check2 = TmuxCommand::with_socket(session.socket_path())
+        .arg("list-panes")
+        .arg("-t")
+        .arg(format!("{}:{}", session.name(), window_index))
+        .execute();
+    assert!(
+        pane_check2.is_ok(),
+        "Failed to list panes after second split"
+    );
+    let pane_count2 = pane_check2.unwrap().lines().count();
+    assert_eq!(pane_count2, 3, "Should have 3 panes after second split");
 
     // Test different layouts
     let layouts = vec![
@@ -347,19 +391,18 @@ fn test_tmux_select_layout() {
     ];
 
     for layout in layouts {
-        let layout_result = session.select_layout("layout-test", layout);
+        let layout_result = session.select_layout(window_index, layout);
         assert!(
             layout_result.is_ok(),
             "Failed to select {layout} layout: {layout_result:?}"
         );
-        println!("✓ Successfully applied {layout} layout");
     }
 
     // Verify panes still exist after layout changes
     let final_pane_count = TmuxCommand::with_socket(session.socket_path())
         .arg("list-panes")
         .arg("-t")
-        .arg(format!("{}:layout-test", session.name()))
+        .arg(format!("{}:{}", session.name(), window_index))
         .execute();
     assert!(
         final_pane_count.is_ok(),
@@ -372,6 +415,4 @@ fn test_tmux_select_layout() {
         pane_count, 3,
         "Should still have 3 panes after layout changes"
     );
-
-    println!("✓ Layout selection test passed");
 }

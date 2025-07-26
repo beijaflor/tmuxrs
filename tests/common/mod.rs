@@ -207,7 +207,6 @@ impl Drop for TmuxTestSession {
 #[allow(dead_code)]
 pub fn cleanup_after_attach_test() {
     // No-op: Test isolation eliminates the need for manual cleanup
-    eprintln!("✅ Test isolation active - no manual cleanup needed");
 }
 
 /// Skip test if not in proper environment

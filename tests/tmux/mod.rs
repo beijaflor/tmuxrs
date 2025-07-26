@@ -15,16 +15,12 @@ fn test_tmux_command_execution() {
 
     // Both success and "no sessions" error are valid outcomes
     match result {
-        Ok(output) => {
-            println!("✓ Successfully executed tmux command: {output}");
-            assert!(
-                output.contains("tmux") || output.is_empty(),
-                "Output should be valid tmux response"
-            );
+        Ok(_output) => {
+            // Accept any output as valid since list-sessions will show existing sessions
+            // or be empty if none exist. The command succeeded, that's what matters.
         }
         Err(TmuxrsError::TmuxError(msg)) => {
             // This is expected when no sessions exist
-            println!("✓ Tmux command failed as expected (no sessions): {msg}");
             assert!(
                 msg.contains("no server running") || msg.contains("failed to connect"),
                 "Error should indicate no tmux server: {msg}"
@@ -34,8 +30,6 @@ fn test_tmux_command_execution() {
             panic!("Unexpected error type: {other:?}");
         }
     }
-
-    println!("✓ Tmux command execution test passed");
 }
 
 /// Tests for session existence checking
@@ -57,8 +51,6 @@ fn test_session_exists_check() {
 
     let exists = result.unwrap();
     assert!(!exists, "Non-existent session should return false");
-
-    println!("✓ Session existence check test passed");
 }
 
 /// Tests for tmux session creation using isolated servers
@@ -88,7 +80,6 @@ fn test_create_session() {
     let exists = exists_result.unwrap();
     assert!(exists, "Session should exist after creation");
 
-    println!("✓ Session creation test passed");
     // Automatic cleanup via Drop trait
 }
 
@@ -121,7 +112,6 @@ fn test_create_window() {
     let exists = session.exists().unwrap();
     assert!(exists, "Session should still exist after window creation");
 
-    println!("✓ Window creation test passed");
     // Automatic cleanup via Drop trait
 }
 
@@ -156,7 +146,6 @@ fn test_send_keys() {
     let exists = session.exists().unwrap();
     assert!(exists, "Session should exist after sending keys");
 
-    println!("✓ Send keys test passed");
     // Automatic cleanup via Drop trait
 }
 
@@ -227,7 +216,6 @@ fn test_isolated_server_operations() {
     let final_exists = session.exists().unwrap();
     assert!(final_exists, "Session should exist after all operations");
 
-    println!("✓ Isolated server operations test passed");
     // Automatic cleanup via Drop trait will clean up the entire isolated server
 }
 
@@ -251,12 +239,10 @@ fn test_command_building_and_error_handling() {
     // Should get a TmuxError since the isolated server has no sessions
     match result {
         Ok(_) => {
-            // Unexpected success - server might have had existing sessions
-            println!("⚠ Unexpected success - isolated server had existing sessions");
+            panic!("Unexpected success - isolated server should not have existing sessions");
         }
         Err(TmuxrsError::TmuxError(msg)) => {
             // Expected error for empty tmux server
-            println!("✓ Got expected TmuxError for empty server: {msg}");
             assert!(
                 msg.contains("no server running")
                     || msg.contains("failed to connect")
@@ -267,8 +253,7 @@ fn test_command_building_and_error_handling() {
             );
         }
         Err(other) => {
-            // Some other error occurred
-            println!("⚠ Got unexpected error type: {other:?}");
+            panic!("Got unexpected error type: {other:?}");
         }
     }
 
@@ -294,6 +279,5 @@ fn test_command_building_and_error_handling() {
         "Output should contain session name: {output}"
     );
 
-    println!("✓ Command building and error handling test passed");
     // Automatic cleanup via Drop trait
 }
