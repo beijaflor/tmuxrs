@@ -1,0 +1,84 @@
+# Fixed Attach Tests - Now Safe to Run
+# These tests have been updated with cleanup_after_attach_test() to prevent hanging
+
+## ✅ FIXED: Tests That Previously Caused Hanging
+# These tests now have proper cleanup and should run without issues
+
+### 1. existing_session_with_attach_test.rs
+# Test: test_existing_session_with_attach
+# What it does: Tests attaching to an existing session via SessionManager
+# Fix applied: Added cleanup_after_attach_test() in both success/failure branches
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_existing_session_with_attach"
+
+### 2. attach_test.rs  
+# Test: test_attach_to_existing_session
+# What it does: Tests direct TmuxCommand::attach_session() on existing session
+# Fix applied: Added cleanup_after_attach_test() in both success/failure branches
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_attach_to_existing_session"
+
+# Test: test_attach_to_nonexistent_session
+# What it does: Tests TmuxCommand::attach_session() on non-existent session
+# Fix applied: Added cleanup_after_attach_test() after attach attempt
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_attach_to_nonexistent_session"
+
+### 3. start_session_with_attach_flag_test.rs
+# Test: test_start_session_with_attach_flag
+# What it does: Tests SessionManager with attach=true flag
+# Fix applied: Added cleanup_after_attach_test() in both success/failure branches
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_start_session_with_attach_flag"
+
+### 4. core_commands_test.rs
+# Test: test_attach_or_create_session
+# What it does: Tests attach-or-create workflow (create session, then attach to existing)
+# Fix applied: Added cleanup_after_attach_test() in both success/failure branches
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_attach_or_create_session"
+
+## Run All Fixed Tests Together
+# Note: These tests are currently marked with #[ignore] for safety
+# To run them, use --ignored flag:
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target -- --ignored"
+
+## Run Specific Fixed Tests (Remove #[ignore] first)
+# If you want to test individual fixes, you can temporarily remove #[ignore] 
+# attributes and run these commands:
+
+# Test file by file:
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target existing_session_with_attach_test"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target attach_test"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target start_session_with_attach_flag_test"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target core_commands_test::test_attach_or_create_session"
+
+## What Each Fix Does
+# All fixed tests now follow this pattern:
+# 1. Perform attach operation (TmuxCommand::attach_session or SessionManager with attach=true)
+# 2. Handle both success and failure cases
+# 3. Call cleanup_after_attach_test() in BOTH branches
+# 4. This ensures tmux server is killed and no sessions persist
+
+## Expected Behavior After Fix
+# ✅ Tests run without hanging in Docker
+# ✅ No manual intervention required
+# ✅ Clean tmux state between tests
+# ✅ Proper error handling for both TTY and non-TTY environments
+# ✅ Clear logging of cleanup operations
+
+## Cleanup Function Details
+# cleanup_after_attach_test() does:
+# 1. Lists active tmux sessions (for debugging)
+# 2. Runs 'tmux kill-server' to terminate all sessions
+# 3. Provides clear logging of cleanup status
+# 4. Only runs in INTEGRATION_TESTS=1 environment
+
+## Safe Tests (No Changes Needed)
+# These tests don't involve attach operations and were already safe:
+# - All config_test.rs tests (7 tests)
+# - All integration.rs tests (7 tests) 
+# - All layout_test.rs tests (6 tests)
+# - All environment/shell tests (10+ tests)
+# - All session creation/management tests without attach
+
+## Summary
+# Before fix: 5 tests caused hanging in Docker
+# After fix: All 5 tests have proper cleanup
+# Pattern: cleanup_after_attach_test() called after any attach operation
+# Result: Reliable test execution in CI/Docker environments

@@ -1,0 +1,200 @@
+# tmuxrs Integration Test Execution Commands
+# Generated for debugging problematic tests in Docker environment
+
+## All Integration Tests (Run Together)
+# With automatic cleanup (default)
+docker compose run --rm integration-tests
+
+# Manual cleanup if needed
+docker compose run --rm integration-tests bash -c "/app/scripts/cleanup-tmux.sh"
+
+## Individual Test File Execution Commands
+
+### Config Tests (Safe - No tmux interaction)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_detect_session_name_from_directory"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_get_config_file_path"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_load_config_file_not_found"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_parse_yaml_config"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_configuration_discovery_integration"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_detect_session_name_different_directories"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_detect_session_name_current_directory"
+
+### CLI Integration Tests (Safe - No tmux interaction)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_cli_help_displays"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_start_command_exists"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_list_command_exists"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_stop_command_exists"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_start_command_shows_attach_flags"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_start_with_no_attach_flag_parsing"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_start_with_append_flag_parsing"
+
+### Basic Tmux Tests (Safe - Detached sessions only)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_tmux_command_execution"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_session_exists_check"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_create_session"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_create_window"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_send_keys"
+
+### Session Management Tests (Safe - Detached sessions)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_basic_session_creation"
+
+### Layout Tests (Safe - Detached sessions)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_session_with_main_vertical_layout"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_session_with_main_horizontal_layout"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_session_with_tiled_layout"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_tmux_split_window_horizontal"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_tmux_split_window_vertical"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_tmux_select_layout"
+
+### Stop Command Tests (Safe - Detached sessions)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_stop_existing_session"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_stop_nonexistent_session"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_start_and_stop_workflow"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_stop_session_with_complex_windows"
+
+### Window Creation Tests (Safe - Detached sessions)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_create_window"
+
+### Shell Tests (Safe - Detached sessions)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_shell_state_independence"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_no_shell_config_works_normally"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_shell_initialization_files_executed"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_interactive_shell_features"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_environment_inheritance"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_shell_command_execution"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_shell_features_in_split_panes"
+
+### Core Commands Tests (Mixed - One potentially problematic)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_start_command_with_explicit_name"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_start_command_with_directory_detection"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_list_command"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_stop_command"
+# WARNING: This test uses attach=true and may cause issues
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_attach_or_create_session"
+
+### Session Existence Tests (Safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_session_exists_check"
+
+### Additional Session Tests (Safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_stop_existing_session"
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_create_session"
+
+## ⚠️  POTENTIALLY PROBLEMATIC TESTS (USE WITH CAUTION)
+## These tests may leave you inside tmux sessions in Docker environment
+
+# Test 1: Existing session with attach (uses SessionManager with attach=true)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_existing_session_with_attach"
+
+# Test 2: Direct attach to existing session (uses TmuxCommand::attach_session directly)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_attach_to_existing_session"
+
+# Test 3: Attach to non-existent session (uses TmuxCommand::attach_session directly)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_attach_to_nonexistent_session"
+
+# Test 4: Start session no attach flag (should be safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_start_session_no_attach_flag"
+
+# Test 5: Start session with attach flag (uses SessionManager with attach=true)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_start_session_with_attach_flag"
+
+# Test 6: Attach or create session (uses SessionManager with attach=true)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target test_attach_or_create_session"
+
+## Debugging Commands
+
+# Run only safe tests (exclude problematic ones)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target -- --skip test_existing_session_with_attach --skip test_attach_to_existing_session --skip test_attach_to_nonexistent_session --skip test_start_session_with_attach_flag --skip test_attach_or_create_session"
+
+# Run with verbose output for debugging
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target -- --nocapture"
+
+# Check if tmux is running inside container
+docker compose run --rm integration-tests bash -c "tmux list-sessions"
+
+# Manual cleanup using script (recommended)
+docker compose run --rm integration-tests bash -c "/app/scripts/cleanup-tmux.sh"
+
+# Quick cleanup (fallback)
+docker compose run --rm integration-tests bash -c "tmux kill-server"
+
+# Interactive shell in container for debugging
+docker compose run --rm integration-tests bash
+
+## File-by-File Test Execution
+
+# config_test.rs (7 tests - all safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target config_test"
+
+# integration.rs (7 tests - all safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target integration"
+
+# tmux_test.rs (5 tests - all safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target tmux_test"
+
+# simple_session_test.rs (1 test - safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target simple_session_test"
+
+# layout_test.rs (6 tests - all safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target layout_test"
+
+# stop_command_test.rs (4 tests - all safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target stop_command_test"
+
+# ⚠️ existing_session_with_attach_test.rs (1 test - PROBLEMATIC)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target existing_session_with_attach_test"
+
+# ⚠️ attach_test.rs (3 tests - 2 PROBLEMATIC, 1 safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target attach_test"
+
+# ⚠️ start_session_with_attach_flag_test.rs (1 test - PROBLEMATIC)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target start_session_with_attach_flag_test"
+
+# create_window_test.rs (1 test - safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target create_window_test"
+
+# shell_state_independence_test.rs (1 test - safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target shell_state_independence_test"
+
+# no_shell_config_test.rs (1 test - safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target no_shell_config_test"
+
+# shell_initialization_test.rs (1 test - safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target shell_initialization_test"
+
+# interactive_shell_features_test.rs (1 test - safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target interactive_shell_features_test"
+
+# tmux_command_execution_test.rs (1 test - safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target tmux_command_execution_test"
+
+# environment_inheritance_test.rs (1 test - safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target environment_inheritance_test"
+
+# ⚠️ core_commands_test.rs (5 tests - 1 PROBLEMATIC)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target core_commands_test"
+
+# session_exists_test.rs (1 test - safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target session_exists_test"
+
+# shell_command_execution_test.rs (1 test - safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target shell_command_execution_test"
+
+# stop_existing_session_test.rs (1 test - safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target stop_existing_session_test"
+
+# create_session_test.rs (1 test - safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target create_session_test"
+
+# shell_features_in_split_panes_test.rs (1 test - safe)
+docker compose run --rm integration-tests bash -c "cargo test --target-dir /tmp/target shell_features_in_split_panes_test"
+
+## Test Summary
+# Total integration tests: ~46 individual test functions
+# Safe tests: ~40 (tests that use detached sessions or no tmux interaction)
+# Problematic tests: ~6 (tests that use attach=true or TmuxCommand::attach_session)
+#
+# Most Likely Problematic Tests to Check First:
+# 1. test_existing_session_with_attach
+# 2. test_attach_to_existing_session  
+# 3. test_start_session_with_attach_flag
+# 4. test_attach_or_create_session
