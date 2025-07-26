@@ -92,11 +92,26 @@ windows:
 - **MVP first**: Implement minimal features well before adding complexity
 
 ## Testing Strategy
-- Unit tests for config parsing and discovery
-- Integration tests with actual tmux sessions
-- Shell interaction tests to ensure proper environment inheritance
-- Test error cases (missing configs, invalid YAML)
-- Manual testing checklist for session lifecycle
+
+### Unit Tests (Inline)
+- All unit tests are now located in `#[cfg(test)]` modules within their respective source files
+- Run with `cargo test` - these run without tmux dependency
+- Coverage includes:
+  - `src/config.rs`: YAML parsing, path detection, config loading
+  - `src/session.rs`: Path expansion, config listing, session name validation  
+  - `src/error.rs`: Error formatting and conversions
+  - `src/cli.rs`: Command-line argument parsing
+  - `src/tmux.rs`: Command building (not execution)
+
+### Integration Tests (tests/ directory)
+- All files in `tests/` are integration tests requiring tmux
+- These tests automatically skip unless `INTEGRATION_TESTS=1` is set
+- Run with Docker: `docker compose run --rm integration-tests`
+- Integration tests verify:
+  - Actual tmux session creation and management
+  - CLI behavior with `assert_cmd`
+  - Shell interaction and environment inheritance
+  - Complete end-to-end workflows
 
 ### Integration Testing
 - **Automatic Skipping**: Integration tests always skip with `cargo test`

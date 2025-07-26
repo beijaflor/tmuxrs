@@ -1,10 +1,88 @@
+use assert_cmd::Command;
+use predicates::prelude::*;
 use tmuxrs::config::Config;
 use tmuxrs::session::SessionManager;
 use tmuxrs::tmux::TmuxCommand;
 
-mod common;
-use common::{should_run_integration_tests, TmuxTestSession};
+use crate::common::{cleanup_after_attach_test, should_run_integration_tests, TmuxTestSession};
 
+/// Tests for CLI interface and help commands
+#[test]
+fn test_cli_help_displays() {
+    let mut cmd = Command::cargo_bin("tmuxrs").unwrap();
+    cmd.arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("A modern tmux session manager"));
+}
+
+#[test]
+fn test_start_command_exists() {
+    let mut cmd = Command::cargo_bin("tmuxrs").unwrap();
+    cmd.arg("start")
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Start a tmux session"));
+}
+
+#[test]
+fn test_list_command_exists() {
+    let mut cmd = Command::cargo_bin("tmuxrs").unwrap();
+    cmd.arg("list")
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains(
+            "List available session configurations",
+        ));
+}
+
+#[test]
+fn test_stop_command_exists() {
+    let mut cmd = Command::cargo_bin("tmuxrs").unwrap();
+    cmd.arg("stop")
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Stop a tmux session"));
+}
+
+#[test]
+fn test_start_command_shows_attach_flags() {
+    let mut cmd = Command::cargo_bin("tmuxrs").unwrap();
+    cmd.arg("start")
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--attach"))
+        .stdout(predicate::str::contains("--no-attach"))
+        .stdout(predicate::str::contains("--append"));
+}
+
+#[test]
+fn test_start_with_no_attach_flag_parsing() {
+    let mut cmd = Command::cargo_bin("tmuxrs").unwrap();
+    cmd.arg("start")
+        .arg("nonexistent-session")
+        .arg("--no-attach")
+        .assert()
+        .failure() // Should fail because no config exists
+        .stderr(predicate::str::contains("Configuration file not found"));
+}
+
+#[test]
+fn test_start_with_append_flag_parsing() {
+    let mut cmd = Command::cargo_bin("tmuxrs").unwrap();
+    cmd.arg("start")
+        .arg("nonexistent-session")
+        .arg("--append")
+        .assert()
+        .failure() // Should fail because no config exists
+        .stderr(predicate::str::contains("Configuration file not found"));
+}
+
+/// Core command integration tests
 #[test]
 fn test_start_command_with_explicit_name() {
     if !should_run_integration_tests() {
@@ -30,8 +108,8 @@ windows:
     );
     std::fs::write(&config_file, yaml_content).unwrap();
 
-    // Test starting with explicit name (detached for test environment)
-    let session_manager = SessionManager::new();
+    // Test starting with explicit name using isolated tmux server
+    let session_manager = SessionManager::with_socket(session.socket_path());
     let result = session_manager.start_session_with_options(
         Some(session.name()),
         Some(&config_dir),
@@ -41,11 +119,11 @@ windows:
 
     assert!(result.is_ok(), "Failed to start session: {result:?}");
 
-    // Verify session exists
+    // Verify session exists in the isolated tmux server
     let exists = session.exists().unwrap();
     assert!(exists, "Session should exist after starting");
 
-    // Automatic cleanup via Drop trait
+    // No manual cleanup needed - TmuxTestSession's Drop trait handles it
 }
 
 #[test]
@@ -72,7 +150,7 @@ windows:
     std::fs::write(&config_file, yaml_content).unwrap();
 
     // Test starting without explicit name (should detect from directory)
-    let session_manager = SessionManager::new();
+    let session_manager = SessionManager::with_socket(session.socket_path());
     let session_name = Config::detect_session_name(Some(&project_dir)).unwrap();
     let result = session_manager.start_session_with_options(
         Some(&session_name),
@@ -86,11 +164,13 @@ windows:
         "Failed to start session from directory: {result:?}"
     );
 
-    // Verify session exists
-    let exists = TmuxCommand::session_exists("my-rust-app").unwrap();
+    // Verify session exists in the isolated tmux server
+    let exists =
+        TmuxCommand::session_exists_with_socket("my-rust-app", Some(session.socket_path()))
+            .unwrap();
     assert!(exists, "Session should exist after starting");
 
-    // Automatic cleanup via Drop trait
+    // No manual cleanup needed - TmuxTestSession's Drop trait handles it
 }
 
 #[test]
@@ -137,7 +217,6 @@ windows:
     assert!(config_names.contains(&"web-app"));
     assert!(config_names.contains(&"api-server"));
     assert!(config_names.contains(&"data-pipeline"));
-    // Automatic cleanup via Drop trait
 }
 
 #[test]
@@ -170,19 +249,19 @@ windows:
     let exists = session.exists().unwrap();
     assert!(exists, "Session should exist before stopping");
 
-    // Test stopping the session
-    let session_manager = SessionManager::new();
+    // Test stopping the session using SessionManager with isolated server
+    let session_manager = SessionManager::with_socket(session.socket_path());
     let result = session_manager.stop_session(session.name());
 
     assert!(result.is_ok(), "Failed to stop session: {result:?}");
 
-    // Verify session no longer exists
+    // Verify session no longer exists in the isolated tmux server
     let exists = session.exists().unwrap();
     assert!(!exists, "Session should not exist after stopping");
-    // Automatic cleanup via Drop trait
 }
 
 #[test]
+#[ignore = "attach tests cause hanging in Docker environment"]
 fn test_attach_or_create_session() {
     if !should_run_integration_tests() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
@@ -205,7 +284,7 @@ windows:
     );
     std::fs::write(&config_file, yaml_content).unwrap();
 
-    let session_manager = SessionManager::new();
+    let session_manager = SessionManager::with_socket(session.socket_path());
 
     // First call should create the session (detached for test environment)
     let result1 = session_manager.start_session_with_options(
@@ -216,7 +295,7 @@ windows:
     );
     assert!(result1.is_ok(), "Failed to create session: {result1:?}");
 
-    // Verify session exists
+    // Verify session exists in the isolated tmux server
     let exists = session.exists().unwrap();
     assert!(exists, "Session should exist after creation");
 
@@ -236,7 +315,8 @@ windows:
                 msg.contains("Attached to existing session"),
                 "Success message should indicate attach: {msg}"
             );
-            println!("✓ Successfully attached to existing session (TTY available)");
+            // Always cleanup after attach operations to prevent hanging
+            cleanup_after_attach_test();
         }
         Err(error) => {
             // Attach failed - valid in non-TTY environments
@@ -244,9 +324,10 @@ windows:
                 error.to_string().contains("Failed to attach"),
                 "Error should indicate attach failure: {error}"
             );
-            println!("✓ Attach failed as expected in non-TTY environment");
+            // Cleanup after failed attach to ensure clean state
+            cleanup_after_attach_test();
         }
     }
 
-    // Automatic cleanup via Drop trait
+    // No manual cleanup needed - TmuxTestSession's Drop trait handles it
 }

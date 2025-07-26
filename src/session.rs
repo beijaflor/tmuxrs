@@ -5,12 +5,22 @@ use std::path::{Path, PathBuf};
 
 /// Session manager for tmuxrs
 #[derive(Default)]
-pub struct SessionManager;
+pub struct SessionManager {
+    socket_path: Option<PathBuf>,
+}
 
 impl SessionManager {
     /// Create a new session manager
     pub fn new() -> Self {
-        Self
+        Self { socket_path: None }
+    }
+
+    /// Create a new session manager with a custom socket path
+    #[allow(dead_code)]
+    pub fn with_socket<P: AsRef<Path>>(socket_path: P) -> Self {
+        Self {
+            socket_path: Some(socket_path.as_ref().to_path_buf()),
+        }
     }
 
     /// Expand tilde (~) and environment variables in paths using shellexpand
@@ -46,7 +56,7 @@ impl SessionManager {
         };
 
         // Check if session already exists
-        if TmuxCommand::session_exists(&session_name)? {
+        if TmuxCommand::session_exists_with_socket(&session_name, self.socket_path.as_ref())? {
             if append {
                 // TODO: Implement append functionality in Phase 2
                 return Err(TmuxrsError::TmuxError(
@@ -54,7 +64,10 @@ impl SessionManager {
                 ));
             } else if attach {
                 // Attach to existing session
-                match TmuxCommand::attach_session(&session_name) {
+                match TmuxCommand::attach_session_with_socket(
+                    &session_name,
+                    self.socket_path.as_ref(),
+                ) {
                     Ok(()) => {
                         // This line should never be reached in practice because
                         // successful attach takes over the terminal process
@@ -84,7 +97,7 @@ impl SessionManager {
         // Create session
         let root_dir = config.root.as_deref().unwrap_or("~");
         let root_path = Self::expand_path(root_dir)?;
-        TmuxCommand::new_session(&session_name, &root_path)?;
+        TmuxCommand::new_session_with_socket(&session_name, &root_path, self.socket_path.as_ref())?;
 
         // Create windows
         for (index, window_config) in config.windows.iter().enumerate() {
@@ -92,40 +105,53 @@ impl SessionManager {
                 crate::config::WindowConfig::Simple(command) => {
                     let window_name = format!("window-{}", index + 1);
                     // Create window without command to allow proper shell initialization
-                    TmuxCommand::new_window(
+                    TmuxCommand::new_window_with_socket(
                         &session_name,
                         &window_name,
                         None, // No command - let shell initialize properly
                         Some(&root_path),
+                        self.socket_path.as_ref(),
                     )?;
                     // Send command after window is created
                     if !command.trim().is_empty() {
-                        TmuxCommand::send_keys(&session_name, &window_name, command)?;
+                        TmuxCommand::send_keys_with_socket(
+                            &session_name,
+                            &window_name,
+                            command,
+                            self.socket_path.as_ref(),
+                        )?;
                     }
                 }
                 crate::config::WindowConfig::Complex { window } => {
                     for (window_name, command) in window {
                         // Create window without command to allow proper shell initialization
-                        TmuxCommand::new_window(
+                        TmuxCommand::new_window_with_socket(
                             &session_name,
                             window_name,
                             None, // No command - let shell initialize properly
                             Some(&root_path),
+                            self.socket_path.as_ref(),
                         )?;
                         // Send command after window is created
                         if !command.trim().is_empty() {
-                            TmuxCommand::send_keys(&session_name, window_name, command)?;
+                            TmuxCommand::send_keys_with_socket(
+                                &session_name,
+                                window_name,
+                                command,
+                                self.socket_path.as_ref(),
+                            )?;
                         }
                     }
                 }
                 crate::config::WindowConfig::WithLayout { window } => {
                     for (window_name, layout_config) in window {
                         // Create the window without command to allow proper shell initialization
-                        TmuxCommand::new_window(
+                        TmuxCommand::new_window_with_socket(
                             &session_name,
                             window_name,
                             None, // No command - let shell initialize properly
                             Some(&root_path),
+                            self.socket_path.as_ref(),
                         )?;
 
                         // Send first pane command if not empty
@@ -135,7 +161,12 @@ impl SessionManager {
                             )
                         })?;
                         if !first_pane.trim().is_empty() {
-                            TmuxCommand::send_keys(&session_name, window_name, first_pane)?;
+                            TmuxCommand::send_keys_with_socket(
+                                &session_name,
+                                window_name,
+                                first_pane,
+                                self.socket_path.as_ref(),
+                            )?;
                         }
 
                         // Add additional panes by splitting
@@ -143,28 +174,35 @@ impl SessionManager {
                             layout_config.panes.iter().skip(1).enumerate()
                         {
                             // Create split without command to allow proper shell initialization
-                            TmuxCommand::split_window_horizontal(
+                            TmuxCommand::split_window_horizontal_with_socket(
                                 &session_name,
                                 window_name,
                                 "", // Empty command - shell will initialize properly
                                 Some(&root_path),
+                                self.socket_path.as_ref(),
                             )?;
                             // Send command to the new pane after it's created
                             // Pane indices start at 0, first pane is 0, second is 1, etc.
                             let target_pane_index = pane_index + 1; // +1 because we skipped the first pane
                             if !pane_command.trim().is_empty() {
-                                TmuxCommand::send_keys_to_pane(
+                                TmuxCommand::send_keys_to_pane_with_socket(
                                     &session_name,
                                     window_name,
                                     target_pane_index,
                                     pane_command,
+                                    self.socket_path.as_ref(),
                                 )?;
                             }
                         }
 
                         // Apply layout if specified
                         if let Some(layout) = &layout_config.layout {
-                            TmuxCommand::select_layout(&session_name, window_name, layout)?;
+                            TmuxCommand::select_layout_with_socket(
+                                &session_name,
+                                window_name,
+                                layout,
+                                self.socket_path.as_ref(),
+                            )?;
                         }
                     }
                 }
@@ -173,7 +211,8 @@ impl SessionManager {
 
         // Handle attachment
         if attach {
-            match TmuxCommand::attach_session(&session_name) {
+            match TmuxCommand::attach_session_with_socket(&session_name, self.socket_path.as_ref())
+            {
                 Ok(()) => {
                     // This line should never be reached in practice because
                     // successful attach takes over the terminal process
@@ -242,13 +281,155 @@ impl SessionManager {
     /// Stop a session
     pub fn stop_session(&self, name: &str) -> Result<String> {
         // Check if session exists first
-        if !TmuxCommand::session_exists(name)? {
+        if !TmuxCommand::session_exists_with_socket(name, self.socket_path.as_ref())? {
             return Err(TmuxrsError::TmuxError(format!(
                 "Session '{name}' does not exist"
             )));
         }
 
-        TmuxCommand::kill_session(name)?;
+        TmuxCommand::kill_session_with_socket(name, self.socket_path.as_ref())?;
         Ok(format!("Stopped session '{name}'"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::env;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_expand_path_home_directory() {
+        // Test tilde expansion
+        let path = SessionManager::expand_path("~/projects").unwrap();
+        assert!(path.is_absolute());
+        assert!(!path.to_string_lossy().contains('~'));
+    }
+
+    #[test]
+    fn test_expand_path_environment_variable() {
+        // Set a test environment variable
+        env::set_var("TEST_PATH", "/tmp/test");
+
+        let path = SessionManager::expand_path("$TEST_PATH/project").unwrap();
+        assert_eq!(path.to_string_lossy(), "/tmp/test/project");
+
+        // Clean up
+        env::remove_var("TEST_PATH");
+    }
+
+    #[test]
+    fn test_expand_path_no_expansion_needed() {
+        // Test absolute path
+        let path = SessionManager::expand_path("/usr/local/bin").unwrap();
+        assert_eq!(path.to_string_lossy(), "/usr/local/bin");
+    }
+
+    #[test]
+    fn test_expand_path_combined() {
+        // Test combined tilde and env var
+        env::set_var("TEST_DIR", "mydir");
+
+        let path = SessionManager::expand_path("~/$TEST_DIR/project").unwrap();
+        assert!(path.is_absolute());
+        assert!(path.to_string_lossy().contains("mydir/project"));
+        assert!(!path.to_string_lossy().contains('~'));
+        assert!(!path.to_string_lossy().contains("$TEST_DIR"));
+
+        // Clean up
+        env::remove_var("TEST_DIR");
+    }
+
+    #[test]
+    fn test_list_configs_empty_directory() {
+        let temp_dir = TempDir::new().unwrap();
+        let manager = SessionManager::new();
+
+        let configs = manager.list_configs(Some(temp_dir.path())).unwrap();
+        assert_eq!(configs.len(), 0);
+    }
+
+    #[test]
+    fn test_list_configs_with_valid_files() {
+        let temp_dir = TempDir::new().unwrap();
+        let manager = SessionManager::new();
+
+        // Create valid YAML config files
+        let yaml1 = r#"
+name: project1
+root: ~/project1
+windows:
+  - editor: vim
+"#;
+        std::fs::write(temp_dir.path().join("project1.yml"), yaml1).unwrap();
+
+        let yaml2 = r#"
+name: project2
+root: ~/project2
+windows:
+  - server: npm start
+"#;
+        std::fs::write(temp_dir.path().join("project2.yaml"), yaml2).unwrap();
+
+        // Create a non-YAML file that should be ignored
+        std::fs::write(temp_dir.path().join("readme.txt"), "Not a config").unwrap();
+
+        let configs = manager.list_configs(Some(temp_dir.path())).unwrap();
+        assert_eq!(configs.len(), 2);
+
+        let names: Vec<String> = configs.iter().map(|c| c.name.clone()).collect();
+        assert!(names.contains(&"project1".to_string()));
+        assert!(names.contains(&"project2".to_string()));
+    }
+
+    #[test]
+    fn test_list_configs_skips_invalid_yaml() {
+        let temp_dir = TempDir::new().unwrap();
+        let manager = SessionManager::new();
+
+        // Create valid YAML
+        let valid = r#"
+name: valid
+root: ~/valid
+windows:
+  - editor: vim
+"#;
+        std::fs::write(temp_dir.path().join("valid.yml"), valid).unwrap();
+
+        // Create invalid YAML
+        std::fs::write(
+            temp_dir.path().join("invalid.yml"),
+            "invalid yaml content {{{",
+        )
+        .unwrap();
+
+        let configs = manager.list_configs(Some(temp_dir.path())).unwrap();
+        assert_eq!(configs.len(), 1);
+        assert_eq!(configs[0].name, "valid");
+    }
+
+    #[test]
+    fn test_session_name_validation() {
+        // Test various session name patterns
+        let temp_dir = TempDir::new().unwrap();
+
+        let test_cases = vec![
+            ("my-project", true),
+            ("web_app", true),
+            ("app123", true),
+            ("123app", true),
+            ("my.project", true),
+        ];
+
+        for (name, should_succeed) in test_cases {
+            let dir_path = temp_dir.path().join(name);
+            std::fs::create_dir(&dir_path).unwrap();
+
+            let result = Config::detect_session_name(Some(&dir_path));
+            if should_succeed {
+                assert!(result.is_ok(), "Failed for name: {name}");
+                assert_eq!(result.unwrap(), name);
+            }
+        }
     }
 }
