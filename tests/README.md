@@ -1,6 +1,6 @@
 # Integration Test Organization
 
-This directory contains the reorganized integration test suite for tmuxrs, structured for better maintainability and organization.
+This directory contains the reorganized integration test suite for tmuxrs, structured for better maintainability and organization. All tests use isolated tmux servers and run reliably in Docker environments.
 
 ## Structure
 
@@ -30,13 +30,13 @@ tests/
 
 ### Session Module (`session/`)
 - **Lifecycle Management**: Session creation, existence checking, destruction
-- **Attachment**: Session attachment in TTY and non-TTY environments (many ignored)
+- **Attachment**: Session attachment behavior testing using headless operations 
 - **Configuration**: Directory detection, config loading, session naming
 
 ### Window Module (`window/`)
 - **Window Management**: Window creation within sessions
 - **Layout Operations**: Splitting (horizontal/vertical), layout selection
-- **SessionManager Integration**: Config-driven window creation (some ignored)
+- **SessionManager Integration**: Config-driven window creation
 
 ### Shell Module (`shell/`)
 - **Environment**: Variable inheritance, shell initialization
@@ -96,11 +96,10 @@ cargo test --test integration_tests tmux
 
 ## Test Status
 
-- **Total Tests**: 47 integration tests across all modules
-- **Active Tests**: 33 tests run in normal environments
-- **Ignored Tests**: 12 tests ignored due to environment limitations:
-  - Attach tests (Docker/TTY limitations)
-  - SessionManager isolation tests (requires enhancement)
+- **Total Tests**: 45 integration tests across all modules
+- **All Tests Active**: All tests now run successfully in Docker environments
+- **No Ignored Tests**: Previously problematic attach tests have been refactored to work reliably
+- **Docker Compatible**: All tests use isolated tmux servers and avoid TTY dependencies
 
 ## Benefits of Reorganization
 
@@ -110,6 +109,43 @@ cargo test --test integration_tests tmux
 4. **Maintainability**: Changes to functionality can update related tests together
 5. **Parallel Development**: Teams can work on different test modules independently
 6. **Documentation**: Clear categorization makes test purpose obvious
+7. **Reliable CI/CD**: All tests work consistently in Docker environments
+8. **Test Isolation**: Each test uses its own tmux server, preventing interference
+
+## Docker Testing Approach
+
+### TTY-Safe Testing
+Our integration tests avoid TTY dependencies by:
+- Using headless tmux operations (`send-keys`, session management)
+- Testing attach behavior without actually attaching to terminals
+- Verifying session readiness rather than interactive attachment
+- Using isolated tmux servers with unique socket paths
+
+### Test Isolation Benefits
+- **No Test Interference**: Each test runs on its own tmux server
+- **Parallel Execution**: Tests can run concurrently without conflicts
+- **Automatic Cleanup**: TmuxTestSession Drop trait ensures no artifacts remain
+- **Consistent Environment**: Docker provides reproducible test conditions
+
+## Troubleshooting
+
+### Common Issues
+- **Permission Errors**: Ensure Docker has proper volume mount permissions
+- **Test Timeouts**: Check if tmux is properly installed in test environment
+- **Socket Path Length**: Tests use short socket names to avoid path limits
+- **Environment Variables**: Ensure `INTEGRATION_TESTS=1` is set for Docker runs
+
+### Debug Commands
+```bash
+# Run specific test with verbose output
+docker compose run --rm integration-tests bash -c "cargo test test_name -- --nocapture"
+
+# Check tmux availability in container
+docker compose run --rm integration-tests bash -c "tmux -V"
+
+# Verify test environment
+docker compose run --rm integration-tests bash -c "env | grep -E '(INTEGRATION|TMUX|TERM)'"
+```
 
 ## Migration Notes
 

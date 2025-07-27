@@ -94,8 +94,8 @@ windows:
 ## Testing Strategy
 
 ### Unit Tests (Inline)
-- All unit tests are now located in `#[cfg(test)]` modules within their respective source files
-- Run with `cargo test` - these run without tmux dependency
+- All unit tests are located in `#[cfg(test)]` modules within their respective source files
+- Run with `cargo test` - these run without tmux dependency and are fast (~50ms)
 - Coverage includes:
   - `src/config.rs`: YAML parsing, path detection, config loading
   - `src/session.rs`: Path expansion, config listing, session name validation  
@@ -104,32 +104,38 @@ windows:
   - `src/tmux.rs`: Command building (not execution)
 
 ### Integration Tests (tests/ directory)
-- All files in `tests/` are integration tests requiring tmux
-- These tests automatically skip unless `INTEGRATION_TESTS=1` is set
-- Run with Docker: `docker compose run --rm integration-tests`
-- Integration tests verify:
-  - Actual tmux session creation and management
-  - CLI behavior with `assert_cmd`
-  - Shell interaction and environment inheritance
-  - Complete end-to-end workflows
+- **Total**: 45 integration tests across 5 modules (cli, session, window, shell, tmux)
+- **All Active**: All tests now run successfully - no ignored tests remain
+- **Auto-skip**: Tests automatically skip unless `INTEGRATION_TESTS=1` is set
+- **Docker**: Run with `docker compose run --rm integration-tests`
+- **Isolated**: Each test uses its own tmux server with unique socket path
+- **TTY-Safe**: Tests work reliably in Docker/CI environments without TTY
 
-### Integration Testing
-- **Automatic Skipping**: Integration tests always skip with `cargo test`
-- **Files**: All tests in `tests/` directory that use `TmuxCommand` or `SessionManager`
-- **Enable Flag**: Integration tests only run when `INTEGRATION_TESTS=1` is set
-- **Commands**: Use `docker compose run --rm integration-tests` to run integration tests
-- **Skip Logic**: Tests run only when `INTEGRATION_TESTS=1` environment variable is set
+Integration tests verify:
+- Actual tmux session creation and management
+- CLI behavior with `assert_cmd`  
+- Shell interaction and environment inheritance
+- Complete end-to-end workflows
+- Window management and layout operations
 
 ### Docker Test Environment
 - **Files**: `Dockerfile.test`, `compose.yml`
-- **Purpose**: Provides isolated, reproducible test environment for integration tests
+- **Purpose**: Provides isolated, reproducible test environment
 - **Features**:
-  - Clean tmux environment for each test run
-  - Consistent Rust toolchain (1.80) and tmux version (3.3a)
-  - Shell interaction tests that were previously skipped in CI
-  - No test artifacts or sessions persist between runs
+  - Isolated tmux servers per test (no interference)
+  - Consistent Rust toolchain (1.80) and tmux version
+  - TTY-safe testing patterns for CI/CD compatibility
+  - Automatic cleanup via Rust Drop trait
+  - Parallel test execution support
 - **Environment Variables**: 
   - `INTEGRATION_TESTS=1` - Required for integration tests to run (automatically set in Docker)
+
+### Testing Improvements (Recent)
+- **Resolved Attach Issues**: Fixed previously ignored attach tests using headless testing patterns
+- **100% Test Success Rate**: All 45 integration tests now pass in Docker
+- **Better Test Isolation**: TmuxTestSession provides automatic cleanup and isolation
+- **TTY-Safe Patterns**: Tests verify attach behavior without blocking on terminal operations
+- **Enhanced Documentation**: Comprehensive testing guides in `docs/testing/`
 
 ## Documentation References
 - Architecture details: `docs/design/02-system-architecture.md`

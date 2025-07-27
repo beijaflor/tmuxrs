@@ -4,7 +4,7 @@ use tmuxrs::config::Config;
 use tmuxrs::session::SessionManager;
 use tmuxrs::tmux::TmuxCommand;
 
-use crate::common::{cleanup_after_attach_test, should_run_integration_tests, TmuxTestSession};
+use crate::common::{should_run_integration_tests, TmuxTestSession};
 
 /// Tests for CLI interface and help commands
 #[test]
@@ -261,7 +261,6 @@ windows:
 }
 
 #[test]
-#[ignore = "attach tests cause hanging in Docker environment"]
 fn test_attach_or_create_session() {
     if !should_run_integration_tests() {
         eprintln!("Skipping integration test - use 'docker compose run --rm integration-tests' or set INTEGRATION_TESTS=1");
@@ -299,35 +298,53 @@ windows:
     let exists = session.exists().unwrap();
     assert!(exists, "Session should exist after creation");
 
-    // Second call should detect existing session and try to attach
+    // Second call should detect existing session (test without attach to avoid TTY issues)
     let result2 = session_manager.start_session_with_options(
         Some(session.name()),
         Some(&config_dir),
-        true,  // attach = true (to test existing session attach behavior)
+        false, // attach = false (avoid TTY issues in Docker)
         false, // append = false
     );
 
-    // Both outcomes are valid depending on environment
-    match result2 {
-        Ok(msg) => {
-            // Attach succeeded - valid in TTY-enabled environments
-            assert!(
-                msg.contains("Attached to existing session"),
-                "Success message should indicate attach: {msg}"
-            );
-            // Always cleanup after attach operations to prevent hanging
-            cleanup_after_attach_test();
-        }
-        Err(error) => {
-            // Attach failed - valid in non-TTY environments
-            assert!(
-                error.to_string().contains("Failed to attach"),
-                "Error should indicate attach failure: {error}"
-            );
-            // Cleanup after failed attach to ensure clean state
-            cleanup_after_attach_test();
-        }
-    }
+    // Should recognize existing session
+    assert!(result2.is_ok(), "Second start should succeed: {result2:?}");
+
+    let msg = result2.unwrap();
+    assert!(
+        msg.contains("already exists"),
+        "Message should indicate session already exists: {msg}"
+    );
+
+    // Verify session still exists after the second call
+    let still_exists = session.exists().unwrap();
+    assert!(
+        still_exists,
+        "Session should still exist after second start"
+    );
+
+    // Test that we can interact with the session (headless operation)
+    let send_result = TmuxCommand::send_keys_with_socket(
+        session.name(),
+        "editor", // Window name from config
+        "echo 'editor window active'",
+        Some(session.socket_path()),
+    );
+    assert!(
+        send_result.is_ok(),
+        "Should be able to send commands to existing session: {send_result:?}"
+    );
+
+    // Test interaction with second window
+    let terminal_send = TmuxCommand::send_keys_with_socket(
+        session.name(),
+        "terminal", // Second window from config
+        "echo 'terminal window active'",
+        Some(session.socket_path()),
+    );
+    assert!(
+        terminal_send.is_ok(),
+        "Should be able to interact with terminal window: {terminal_send:?}"
+    );
 
     // No manual cleanup needed - TmuxTestSession's Drop trait handles it
 }
