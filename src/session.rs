@@ -36,6 +36,45 @@ impl SessionManager {
         }
     }
 
+    /// Determine if a command is likely to be long-running
+    /// Long-running commands should be passed directly to avoid nested shells
+    /// Short-lived commands should use send-keys to keep the window open
+    fn is_long_running_command(command: &str) -> bool {
+        let trimmed = command.trim();
+
+        // Check for common long-running patterns
+        if trimmed == "$SHELL" || trimmed.starts_with("$SHELL") {
+            return true;
+        }
+
+        // Check for interactive applications
+        let long_running_commands = [
+            "vi", "vim", "nvim", "emacs", "nano", "less", "more", "top", "htop", "tail", "watch",
+            "tmux", "screen", "ssh", "ftp", "telnet", "nc", "netcat", "python", "node", "irb",
+            "rails", "npm", "yarn", "cargo", "make", "docker", "kubectl", "bash", "sh", "zsh",
+            "fish",
+        ];
+
+        // Check if command starts with any long-running command
+        for long_cmd in &long_running_commands {
+            if trimmed == *long_cmd || trimmed.starts_with(&format!("{long_cmd} ")) {
+                return true;
+            }
+        }
+
+        // Check for pipes or complex commands that might be long-running
+        if trimmed.contains(" | ") || trimmed.contains(" && ") || trimmed.contains(" || ") {
+            return true;
+        }
+
+        // Check for background processes
+        if trimmed.ends_with(" &") {
+            return true;
+        }
+
+        false
+    }
+
     /// Start a session with optional explicit name
     pub fn start_session(&self, name: Option<&str>, config_dir: Option<&Path>) -> Result<String> {
         // Use default behavior: attach=true, append=false
@@ -104,16 +143,33 @@ impl SessionManager {
             match window_config {
                 crate::config::WindowConfig::Simple(command) => {
                     let window_name = format!("window-{}", index + 1);
-                    // Create window without command to allow proper shell initialization
-                    TmuxCommand::new_window_with_socket(
-                        &session_name,
-                        &window_name,
-                        None, // No command - let shell initialize properly
-                        Some(&root_path),
-                        self.socket_path.as_ref(),
-                    )?;
-                    // Send command after window is created
-                    if !command.trim().is_empty() {
+                    if command.trim().is_empty() {
+                        // Empty command - just create window
+                        TmuxCommand::new_window_with_socket(
+                            &session_name,
+                            &window_name,
+                            None,
+                            Some(&root_path),
+                            self.socket_path.as_ref(),
+                        )?;
+                    } else if Self::is_long_running_command(command) {
+                        // Long-running command - create window with command directly to prevent nested shells
+                        TmuxCommand::new_window_with_socket(
+                            &session_name,
+                            &window_name,
+                            Some(command),
+                            Some(&root_path),
+                            self.socket_path.as_ref(),
+                        )?;
+                    } else {
+                        // Short-lived command - use traditional approach to keep window open
+                        TmuxCommand::new_window_with_socket(
+                            &session_name,
+                            &window_name,
+                            None,
+                            Some(&root_path),
+                            self.socket_path.as_ref(),
+                        )?;
                         TmuxCommand::send_keys_with_socket(
                             &session_name,
                             &window_name,
@@ -124,16 +180,33 @@ impl SessionManager {
                 }
                 crate::config::WindowConfig::Complex { window } => {
                     for (window_name, command) in window {
-                        // Create window without command to allow proper shell initialization
-                        TmuxCommand::new_window_with_socket(
-                            &session_name,
-                            window_name,
-                            None, // No command - let shell initialize properly
-                            Some(&root_path),
-                            self.socket_path.as_ref(),
-                        )?;
-                        // Send command after window is created
-                        if !command.trim().is_empty() {
+                        if command.trim().is_empty() {
+                            // Empty command - just create window
+                            TmuxCommand::new_window_with_socket(
+                                &session_name,
+                                window_name,
+                                None,
+                                Some(&root_path),
+                                self.socket_path.as_ref(),
+                            )?;
+                        } else if Self::is_long_running_command(command) {
+                            // Long-running command - create window with command directly to prevent nested shells
+                            TmuxCommand::new_window_with_socket(
+                                &session_name,
+                                window_name,
+                                Some(command),
+                                Some(&root_path),
+                                self.socket_path.as_ref(),
+                            )?;
+                        } else {
+                            // Short-lived command - use traditional approach to keep window open
+                            TmuxCommand::new_window_with_socket(
+                                &session_name,
+                                window_name,
+                                None,
+                                Some(&root_path),
+                                self.socket_path.as_ref(),
+                            )?;
                             TmuxCommand::send_keys_with_socket(
                                 &session_name,
                                 window_name,
@@ -145,22 +218,41 @@ impl SessionManager {
                 }
                 crate::config::WindowConfig::WithLayout { window } => {
                     for (window_name, layout_config) in window {
-                        // Create the window without command to allow proper shell initialization
-                        TmuxCommand::new_window_with_socket(
-                            &session_name,
-                            window_name,
-                            None, // No command - let shell initialize properly
-                            Some(&root_path),
-                            self.socket_path.as_ref(),
-                        )?;
-
-                        // Send first pane command if not empty
+                        // Get first pane command
                         let first_pane = layout_config.panes.first().ok_or_else(|| {
                             TmuxrsError::TmuxError(
                                 "Window layout must have at least one pane".to_string(),
                             )
                         })?;
-                        if !first_pane.trim().is_empty() {
+
+                        // Create the window with the first pane
+                        if first_pane.trim().is_empty() {
+                            // Empty command - just create window
+                            TmuxCommand::new_window_with_socket(
+                                &session_name,
+                                window_name,
+                                None,
+                                Some(&root_path),
+                                self.socket_path.as_ref(),
+                            )?;
+                        } else if Self::is_long_running_command(first_pane) {
+                            // Long-running command - create window with command directly to prevent nested shells
+                            TmuxCommand::new_window_with_socket(
+                                &session_name,
+                                window_name,
+                                Some(first_pane),
+                                Some(&root_path),
+                                self.socket_path.as_ref(),
+                            )?;
+                        } else {
+                            // Short-lived command - use traditional approach to keep window open
+                            TmuxCommand::new_window_with_socket(
+                                &session_name,
+                                window_name,
+                                None,
+                                Some(&root_path),
+                                self.socket_path.as_ref(),
+                            )?;
                             TmuxCommand::send_keys_with_socket(
                                 &session_name,
                                 window_name,
@@ -173,18 +265,36 @@ impl SessionManager {
                         for (pane_index, pane_command) in
                             layout_config.panes.iter().skip(1).enumerate()
                         {
-                            // Create split without command to allow proper shell initialization
-                            TmuxCommand::split_window_horizontal_with_socket(
-                                &session_name,
-                                window_name,
-                                "", // Empty command - shell will initialize properly
-                                Some(&root_path),
-                                self.socket_path.as_ref(),
-                            )?;
-                            // Send command to the new pane after it's created
-                            // Pane indices start at 0, first pane is 0, second is 1, etc.
-                            let target_pane_index = pane_index + 1; // +1 because we skipped the first pane
-                            if !pane_command.trim().is_empty() {
+                            if pane_command.trim().is_empty() {
+                                // Empty command - just create split
+                                TmuxCommand::split_window_horizontal_with_socket(
+                                    &session_name,
+                                    window_name,
+                                    "",
+                                    Some(&root_path),
+                                    self.socket_path.as_ref(),
+                                )?;
+                            } else if Self::is_long_running_command(pane_command) {
+                                // Long-running command - create split with command directly to prevent nested shells
+                                TmuxCommand::split_window_horizontal_with_socket(
+                                    &session_name,
+                                    window_name,
+                                    pane_command,
+                                    Some(&root_path),
+                                    self.socket_path.as_ref(),
+                                )?;
+                            } else {
+                                // Short-lived command - use traditional approach
+                                TmuxCommand::split_window_horizontal_with_socket(
+                                    &session_name,
+                                    window_name,
+                                    "",
+                                    Some(&root_path),
+                                    self.socket_path.as_ref(),
+                                )?;
+                                // Send command to the new pane after it's created
+                                // Pane indices start at 0, first pane is 0, second is 1, etc.
+                                let target_pane_index = pane_index + 1; // +1 because we skipped the first pane
                                 TmuxCommand::send_keys_to_pane_with_socket(
                                     &session_name,
                                     window_name,
