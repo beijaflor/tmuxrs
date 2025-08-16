@@ -164,6 +164,58 @@ impl TmuxCommand {
         cmd.execute()
     }
 
+    /// Set base-index to 0 for a session
+    #[allow(dead_code)]
+    pub fn set_base_index(session_name: &str) -> Result<String> {
+        Self::set_base_index_with_socket(session_name, None::<&Path>)
+    }
+
+    /// Set base-index to 0 for a session using a specific socket
+    #[allow(dead_code)]
+    pub fn set_base_index_with_socket<P: AsRef<Path>>(
+        session_name: &str,
+        socket_path: Option<P>,
+    ) -> Result<String> {
+        let mut cmd = Self::new()
+            .arg("set-option")
+            .arg("-t")
+            .arg(session_name)
+            .arg("base-index")
+            .arg("0");
+
+        if let Some(socket) = socket_path {
+            cmd = cmd.socket(socket);
+        }
+
+        cmd.execute()
+    }
+
+    /// Set pane-base-index to 0 for a session
+    #[allow(dead_code)]
+    pub fn set_pane_base_index(session_name: &str) -> Result<String> {
+        Self::set_pane_base_index_with_socket(session_name, None::<&Path>)
+    }
+
+    /// Set pane-base-index to 0 for a session using a specific socket
+    #[allow(dead_code)]
+    pub fn set_pane_base_index_with_socket<P: AsRef<Path>>(
+        session_name: &str,
+        socket_path: Option<P>,
+    ) -> Result<String> {
+        let mut cmd = Self::new()
+            .arg("set-option")
+            .arg("-t")
+            .arg(session_name)
+            .arg("pane-base-index")
+            .arg("0");
+
+        if let Some(socket) = socket_path {
+            cmd = cmd.socket(socket);
+        }
+
+        cmd.execute()
+    }
+
     /// Create a new window in a session
     #[allow(dead_code)]
     pub fn new_window(
