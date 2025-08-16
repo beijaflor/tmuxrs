@@ -146,10 +146,11 @@ impl SessionManager {
                     for (window_index, (window_name, command)) in window.iter().enumerate() {
                         if index == 0 && window_index == 0 {
                             // Dynamically detect the initial window index (may vary by tmux version/config)
-                            let initial_window_index = TmuxCommand::get_first_window_index_with_socket(
-                                &session_name,
-                                self.socket_path.as_ref(),
-                            )?;
+                            let initial_window_index =
+                                TmuxCommand::get_first_window_index_with_socket(
+                                    &session_name,
+                                    self.socket_path.as_ref(),
+                                )?;
                             TmuxCommand::rename_window_with_socket(
                                 &session_name,
                                 &initial_window_index,
@@ -182,10 +183,11 @@ impl SessionManager {
                     for (window_index, (window_name, layout_config)) in window.iter().enumerate() {
                         if index == 0 && window_index == 0 {
                             // Dynamically detect the initial window index (may vary by tmux version/config)
-                            let initial_window_index = TmuxCommand::get_first_window_index_with_socket(
-                                &session_name,
-                                self.socket_path.as_ref(),
-                            )?;
+                            let initial_window_index =
+                                TmuxCommand::get_first_window_index_with_socket(
+                                    &session_name,
+                                    self.socket_path.as_ref(),
+                                )?;
                             TmuxCommand::rename_window_with_socket(
                                 &session_name,
                                 &initial_window_index,
