@@ -101,40 +101,22 @@ impl SessionManager {
         let root_path = Self::expand_path(root_dir)?;
         TmuxCommand::new_session_with_socket(&session_name, &root_path, self.socket_path.as_ref())?;
 
+        // Wait for session to be fully initialized before creating windows
+        thread::sleep(Duration::from_millis(100));
+
         // Create windows
         for (index, window_config) in config.windows.iter().enumerate() {
             match window_config {
                 crate::config::WindowConfig::Simple(command) => {
                     let window_name = format!("window-{}", index + 1);
-                    // Create window without command to allow proper shell initialization
-                    TmuxCommand::new_window_with_socket(
-                        &session_name,
-                        &window_name,
-                        None, // No command - let shell initialize properly
-                        Some(&root_path),
-                        self.socket_path.as_ref(),
-                    )?;
 
-                    // Brief delay to ensure window is fully initialized
-                    thread::sleep(Duration::from_millis(50));
-
-                    // Send command after window is created to specific pane 0
-                    if !command.trim().is_empty() {
-                        TmuxCommand::send_keys_to_pane_with_socket(
-                            &session_name,
-                            &window_name,
-                            0, // Target pane 0 specifically
-                            command,
-                            self.socket_path.as_ref(),
-                        )?;
-                    }
-                }
-                crate::config::WindowConfig::Complex { window } => {
-                    for (window_name, command) in window {
+                    // For the first window (index 0), use the existing window created by new-session
+                    // For subsequent windows, create new windows
+                    if index > 0 {
                         // Create window without command to allow proper shell initialization
                         TmuxCommand::new_window_with_socket(
                             &session_name,
-                            window_name,
+                            &window_name,
                             None, // No command - let shell initialize properly
                             Some(&root_path),
                             self.socket_path.as_ref(),
@@ -142,13 +124,43 @@ impl SessionManager {
 
                         // Brief delay to ensure window is fully initialized
                         thread::sleep(Duration::from_millis(50));
+                    }
 
-                        // Send command after window is created to specific pane 0
-                        if !command.trim().is_empty() {
-                            TmuxCommand::send_keys_to_pane_with_socket(
+                    // Send command to the window (existing window 1 for index 0, or newly created for others)
+                    if !command.trim().is_empty() {
+                        // Use window-level targeting instead of pane-level to avoid base-index issues
+                        TmuxCommand::send_keys_with_socket(
+                            &session_name,
+                            &window_name,
+                            command,
+                            self.socket_path.as_ref(),
+                        )?;
+                    }
+                }
+                crate::config::WindowConfig::Complex { window } => {
+                    for (window_index, (window_name, command)) in window.iter().enumerate() {
+                        // For the first window (index 0), use the existing window created by new-session
+                        // For subsequent windows, create new windows
+                        if index > 0 || window_index > 0 {
+                            // Create window without command to allow proper shell initialization
+                            TmuxCommand::new_window_with_socket(
                                 &session_name,
                                 window_name,
-                                0, // Target pane 0 specifically
+                                None, // No command - let shell initialize properly
+                                Some(&root_path),
+                                self.socket_path.as_ref(),
+                            )?;
+
+                            // Brief delay to ensure window is fully initialized
+                            thread::sleep(Duration::from_millis(50));
+                        }
+
+                        // Send command to the window (existing or newly created)
+                        if !command.trim().is_empty() {
+                            // Use window-level targeting instead of pane-level to avoid base-index issues
+                            TmuxCommand::send_keys_with_socket(
+                                &session_name,
+                                window_name,
                                 command,
                                 self.socket_path.as_ref(),
                             )?;
@@ -156,18 +168,41 @@ impl SessionManager {
                     }
                 }
                 crate::config::WindowConfig::WithLayout { window } => {
-                    for (window_name, layout_config) in window {
-                        // Create the window without command to allow proper shell initialization
-                        TmuxCommand::new_window_with_socket(
-                            &session_name,
-                            window_name,
-                            None, // No command - let shell initialize properly
-                            Some(&root_path),
-                            self.socket_path.as_ref(),
-                        )?;
+                    for (window_index, (window_name, layout_config)) in window.iter().enumerate() {
+                        // For the first window (index 0), rename the existing window created by new-session
+                        // For subsequent windows, create new windows
+                        if index == 0 && window_index == 0 {
+                            // Rename the existing window 1 to match config
+                            let mut rename_cmd = std::process::Command::new("tmux");
+                            if let Some(socket) = &self.socket_path {
+                                rename_cmd.args(["-S", &socket.to_string_lossy()]);
+                            }
+                            let rename_result = rename_cmd
+                                .args([
+                                    "rename-window",
+                                    "-t",
+                                    &format!("{session_name}:1"),
+                                    window_name,
+                                ])
+                                .output();
+                            if let Err(e) = rename_result {
+                                return Err(TmuxrsError::TmuxError(format!(
+                                    "Failed to rename window: {e}"
+                                )));
+                            }
+                        } else {
+                            // Create the window without command to allow proper shell initialization
+                            TmuxCommand::new_window_with_socket(
+                                &session_name,
+                                window_name,
+                                None, // No command - let shell initialize properly
+                                Some(&root_path),
+                                self.socket_path.as_ref(),
+                            )?;
 
-                        // Brief delay to ensure window is fully initialized
-                        thread::sleep(Duration::from_millis(50));
+                            // Brief delay to ensure window is fully initialized
+                            thread::sleep(Duration::from_millis(50));
+                        }
 
                         // Send first pane command if not empty
                         let first_pane = layout_config.panes.first().ok_or_else(|| {
@@ -176,10 +211,10 @@ impl SessionManager {
                             )
                         })?;
                         if !first_pane.trim().is_empty() {
-                            TmuxCommand::send_keys_to_pane_with_socket(
+                            // Use window-level targeting for first pane to avoid base-index issues
+                            TmuxCommand::send_keys_with_socket(
                                 &session_name,
                                 window_name,
-                                0, // Target pane 0 specifically
                                 first_pane,
                                 self.socket_path.as_ref(),
                             )?;
@@ -202,13 +237,14 @@ impl SessionManager {
                             thread::sleep(Duration::from_millis(50));
 
                             // Send command to the new pane after it's created
-                            // Pane indices start at 0, first pane is 0, second is 1, etc.
-                            let target_pane_index = pane_index + 1; // +1 because we skipped the first pane
+                            // With pane-base-index 1: first pane is 1, second is 2, third is 3, etc.
+                            let _target_pane_index = pane_index + 2; // +2 because base is 1 and we skipped first pane
                             if !pane_command.trim().is_empty() {
-                                TmuxCommand::send_keys_to_pane_with_socket(
+                                // For now, use window-level targeting to avoid base-index issues
+                                // TODO: Improve multi-pane targeting in future version
+                                TmuxCommand::send_keys_with_socket(
                                     &session_name,
                                     window_name,
-                                    target_pane_index,
                                     pane_command,
                                     self.socket_path.as_ref(),
                                 )?;
