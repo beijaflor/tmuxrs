@@ -227,10 +227,11 @@ impl TmuxCommand {
         keys: &str,
         socket_path: Option<P>,
     ) -> Result<String> {
+        let target = format!("{session_name}:{window_name}");
         let mut cmd = Self::new()
             .arg("send-keys")
             .arg("-t")
-            .arg(format!("{session_name}:{window_name}"))
+            .arg(target)
             .arg(keys)
             .arg("Enter");
 
@@ -267,10 +268,11 @@ impl TmuxCommand {
         keys: &str,
         socket_path: Option<P>,
     ) -> Result<String> {
+        let target = format!("{session_name}:{window_name}.{pane_index}");
         let mut cmd = Self::new()
             .arg("send-keys")
             .arg("-t")
-            .arg(format!("{session_name}:{window_name}.{pane_index}"))
+            .arg(target)
             .arg(keys)
             .arg("Enter");
 
@@ -328,15 +330,16 @@ impl TmuxCommand {
         working_dir: Option<&Path>,
         socket_path: Option<P>,
     ) -> Result<String> {
+        let target = if window_name.is_empty() {
+            session_name.to_string()
+        } else {
+            format!("{session_name}:{window_name}")
+        };
         let mut cmd = Self::new()
             .arg("split-window")
             .arg("-h") // horizontal split (side by side)
             .arg("-t")
-            .arg(if window_name.is_empty() {
-                session_name.to_string()
-            } else {
-                format!("{session_name}:{window_name}")
-            });
+            .arg(&target);
 
         // Add working directory if provided
         if let Some(dir) = working_dir {

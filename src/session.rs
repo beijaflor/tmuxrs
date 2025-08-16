@@ -110,9 +110,28 @@ impl SessionManager {
                 crate::config::WindowConfig::Simple(command) => {
                     let window_name = format!("window-{}", index + 1);
 
-                    // For the first window (index 0), use the existing window created by new-session
+                    // For the first window (index 0), rename the existing window created by new-session
                     // For subsequent windows, create new windows
-                    if index > 0 {
+                    if index == 0 {
+                        // Rename the existing window 1 to match config
+                        let mut rename_cmd = std::process::Command::new("tmux");
+                        if let Some(socket) = &self.socket_path {
+                            rename_cmd.args(["-S", &socket.to_string_lossy()]);
+                        }
+                        let rename_result = rename_cmd
+                            .args([
+                                "rename-window",
+                                "-t",
+                                &format!("{session_name}:1"),
+                                &window_name,
+                            ])
+                            .output();
+                        if let Err(e) = rename_result {
+                            return Err(TmuxrsError::TmuxError(format!(
+                                "Failed to rename window: {e}"
+                            )));
+                        }
+                    } else {
                         // Create window without command to allow proper shell initialization
                         TmuxCommand::new_window_with_socket(
                             &session_name,
@@ -139,9 +158,28 @@ impl SessionManager {
                 }
                 crate::config::WindowConfig::Complex { window } => {
                     for (window_index, (window_name, command)) in window.iter().enumerate() {
-                        // For the first window (index 0), use the existing window created by new-session
+                        // For the first window (index 0), rename the existing window created by new-session
                         // For subsequent windows, create new windows
-                        if index > 0 || window_index > 0 {
+                        if index == 0 && window_index == 0 {
+                            // Rename the existing window 1 to match config
+                            let mut rename_cmd = std::process::Command::new("tmux");
+                            if let Some(socket) = &self.socket_path {
+                                rename_cmd.args(["-S", &socket.to_string_lossy()]);
+                            }
+                            let rename_result = rename_cmd
+                                .args([
+                                    "rename-window",
+                                    "-t",
+                                    &format!("{session_name}:1"),
+                                    window_name,
+                                ])
+                                .output();
+                            if let Err(e) = rename_result {
+                                return Err(TmuxrsError::TmuxError(format!(
+                                    "Failed to rename window: {e}"
+                                )));
+                            }
+                        } else {
                             // Create window without command to allow proper shell initialization
                             TmuxCommand::new_window_with_socket(
                                 &session_name,
