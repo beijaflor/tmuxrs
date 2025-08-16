@@ -157,11 +157,17 @@ impl TmuxCommand {
             .arg("-c")
             .arg(working_dir.to_string_lossy().as_ref());
 
-        if let Some(socket) = socket_path {
+        if let Some(socket) = socket_path.as_ref() {
             cmd = cmd.socket(socket);
         }
 
-        cmd.execute()
+        let result = cmd.execute()?;
+
+        // Apply 0-based indexing settings to ensure consistent behavior
+        Self::set_base_index_with_socket(session_name, socket_path.as_ref())?;
+        Self::set_pane_base_index_with_socket(session_name, socket_path.as_ref())?;
+
+        Ok(result)
     }
 
     /// Set base-index to 0 for a session
@@ -208,6 +214,34 @@ impl TmuxCommand {
             .arg(session_name)
             .arg("pane-base-index")
             .arg("0");
+
+        if let Some(socket) = socket_path {
+            cmd = cmd.socket(socket);
+        }
+
+        cmd.execute()
+    }
+
+    /// Rename a window in a session
+    #[allow(dead_code)]
+    pub fn rename_window(session_name: &str, window_target: &str, new_name: &str) -> Result<String> {
+        Self::rename_window_with_socket(session_name, window_target, new_name, None::<&Path>)
+    }
+
+    /// Rename a window in a session using a specific socket
+    #[allow(dead_code)]
+    pub fn rename_window_with_socket<P: AsRef<Path>>(
+        session_name: &str,
+        window_target: &str,
+        new_name: &str,
+        socket_path: Option<P>,
+    ) -> Result<String> {
+        let target = format!("{session_name}:{window_target}");
+        let mut cmd = Self::new()
+            .arg("rename-window")
+            .arg("-t")
+            .arg(target)
+            .arg(new_name);
 
         if let Some(socket) = socket_path {
             cmd = cmd.socket(socket);

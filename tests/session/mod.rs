@@ -115,10 +115,11 @@ fn test_attach_to_existing_session() {
     assert!(exists, "Session should exist and be ready for attachment");
 
     // Test that we can interact with the session (headless operations)
-    // When creating a session without windows, tmux creates a default window "0"
+    // When creating a session, tmux creates an initial window at index 1
+    // (base-index 0 only affects new windows created after the setting)
     let send_result = TmuxCommand::send_keys_with_socket(
         session.name(),
-        "0", // Default window index
+        "1", // Initial window index (before base-index takes effect)
         "echo 'session is active'",
         Some(session.socket_path()),
     );

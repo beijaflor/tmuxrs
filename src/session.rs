@@ -99,7 +99,7 @@ impl SessionManager {
         let root_path = Self::expand_path(root_dir)?;
         TmuxCommand::new_session_with_socket(&session_name, &root_path, self.socket_path.as_ref())?;
 
-        // Set 0-based indexing for both windows and panes
+        // Set 0-based indexing for both windows and panes (affects future windows/panes)
         TmuxCommand::set_base_index_with_socket(&session_name, self.socket_path.as_ref())?;
         TmuxCommand::set_pane_base_index_with_socket(&session_name, self.socket_path.as_ref())?;
 
@@ -110,26 +110,13 @@ impl SessionManager {
                     let window_name = format!("window-{index}");
 
                     if index == 0 {
-                        // Rename the initial window (now at index 0) to match config
-                        let mut rename_cmd = std::process::Command::new("tmux");
-                        if let Some(socket) = &self.socket_path {
-                            rename_cmd.args(["-S", &socket.to_string_lossy()]);
-                        }
-                        let rename_result = rename_cmd
-                            .args([
-                                "rename-window",
-                                "-t",
-                                &format!("{session_name}:0"),
-                                &window_name,
-                            ])
-                            .output();
-                        if let Err(e) = rename_result {
-                            return Err(TmuxrsError::TmuxError(format!(
-                                "Failed to rename window: {e}"
-                            )));
-                        }
+                        // The initial window is always created at index 1 (default tmux behavior)
+                        // base-index 0 only affects new windows created after the setting
+                        TmuxCommand::rename_window_with_socket(
+                            &session_name, "1", &window_name, self.socket_path.as_ref()
+                        )?;
                     } else {
-                        // Create additional windows at indices 1, 2, 3, etc.
+                        // Create additional windows (these will use 0-based indexing since base-index is set)
                         TmuxCommand::new_window_with_socket(
                             &session_name,
                             &window_name,
@@ -152,26 +139,12 @@ impl SessionManager {
                 crate::config::WindowConfig::Complex { window } => {
                     for (window_index, (window_name, command)) in window.iter().enumerate() {
                         if index == 0 && window_index == 0 {
-                            // Rename the initial window (now at index 0) to match config
-                            let mut rename_cmd = std::process::Command::new("tmux");
-                            if let Some(socket) = &self.socket_path {
-                                rename_cmd.args(["-S", &socket.to_string_lossy()]);
-                            }
-                            let rename_result = rename_cmd
-                                .args([
-                                    "rename-window",
-                                    "-t",
-                                    &format!("{session_name}:0"),
-                                    window_name,
-                                ])
-                                .output();
-                            if let Err(e) = rename_result {
-                                return Err(TmuxrsError::TmuxError(format!(
-                                    "Failed to rename window: {e}"
-                                )));
-                            }
+                            // The initial window is always at index 1, rename it deterministically
+                            TmuxCommand::rename_window_with_socket(
+                                &session_name, "1", window_name, self.socket_path.as_ref()
+                            )?;
                         } else {
-                            // Create additional windows using 0-based indexing
+                            // Create additional windows (use 0-based indexing)
                             TmuxCommand::new_window_with_socket(
                                 &session_name,
                                 window_name,
@@ -195,26 +168,12 @@ impl SessionManager {
                 crate::config::WindowConfig::WithLayout { window } => {
                     for (window_index, (window_name, layout_config)) in window.iter().enumerate() {
                         if index == 0 && window_index == 0 {
-                            // Rename the initial window (now at index 0) to match config
-                            let mut rename_cmd = std::process::Command::new("tmux");
-                            if let Some(socket) = &self.socket_path {
-                                rename_cmd.args(["-S", &socket.to_string_lossy()]);
-                            }
-                            let rename_result = rename_cmd
-                                .args([
-                                    "rename-window",
-                                    "-t",
-                                    &format!("{session_name}:0"),
-                                    window_name,
-                                ])
-                                .output();
-                            if let Err(e) = rename_result {
-                                return Err(TmuxrsError::TmuxError(format!(
-                                    "Failed to rename window: {e}"
-                                )));
-                            }
+                            // The initial window is always at index 1, rename it deterministically
+                            TmuxCommand::rename_window_with_socket(
+                                &session_name, "1", window_name, self.socket_path.as_ref()
+                            )?;
                         } else {
-                            // Create additional windows using 0-based indexing
+                            // Create additional windows (use 0-based indexing)
                             TmuxCommand::new_window_with_socket(
                                 &session_name,
                                 window_name,
