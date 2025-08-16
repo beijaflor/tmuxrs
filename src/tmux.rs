@@ -157,6 +157,124 @@ impl TmuxCommand {
             .arg("-c")
             .arg(working_dir.to_string_lossy().as_ref());
 
+        if let Some(socket) = socket_path.as_ref() {
+            cmd = cmd.socket(socket);
+        }
+
+        cmd.execute()
+    }
+
+    /// Set base-index to 0 for a session
+    #[allow(dead_code)]
+    pub fn set_base_index(session_name: &str) -> Result<String> {
+        Self::set_base_index_with_socket(session_name, None::<&Path>)
+    }
+
+    /// Set base-index to 0 for a session using a specific socket
+    #[allow(dead_code)]
+    pub fn set_base_index_with_socket<P: AsRef<Path>>(
+        session_name: &str,
+        socket_path: Option<P>,
+    ) -> Result<String> {
+        let mut cmd = Self::new()
+            .arg("set-option")
+            .arg("-t")
+            .arg(session_name)
+            .arg("base-index")
+            .arg("0");
+
+        if let Some(socket) = socket_path {
+            cmd = cmd.socket(socket);
+        }
+
+        cmd.execute()
+    }
+
+    /// Set pane-base-index to 0 for a session
+    #[allow(dead_code)]
+    pub fn set_pane_base_index(session_name: &str) -> Result<String> {
+        Self::set_pane_base_index_with_socket(session_name, None::<&Path>)
+    }
+
+    /// Set pane-base-index to 0 for a session using a specific socket
+    #[allow(dead_code)]
+    pub fn set_pane_base_index_with_socket<P: AsRef<Path>>(
+        session_name: &str,
+        socket_path: Option<P>,
+    ) -> Result<String> {
+        let mut cmd = Self::new()
+            .arg("set-option")
+            .arg("-t")
+            .arg(session_name)
+            .arg("pane-base-index")
+            .arg("0");
+
+        if let Some(socket) = socket_path {
+            cmd = cmd.socket(socket);
+        }
+
+        cmd.execute()
+    }
+
+    /// Get the index of the first (initial) window in a session
+    #[allow(dead_code)]
+    pub fn get_first_window_index(session_name: &str) -> Result<String> {
+        Self::get_first_window_index_with_socket(session_name, None::<&Path>)
+    }
+
+    /// Get the index of the first (initial) window in a session using a specific socket
+    #[allow(dead_code)]
+    pub fn get_first_window_index_with_socket<P: AsRef<Path>>(
+        session_name: &str,
+        socket_path: Option<P>,
+    ) -> Result<String> {
+        let mut cmd = Self::new()
+            .arg("list-windows")
+            .arg("-t")
+            .arg(session_name)
+            .arg("-F")
+            .arg("#{window_index}");
+
+        if let Some(socket) = socket_path {
+            cmd = cmd.socket(socket);
+        }
+
+        let output = cmd.execute()?;
+        // Get the first line (first window index)
+        let first_index = output
+            .lines()
+            .next()
+            .ok_or_else(|| TmuxrsError::TmuxError("No windows found in session".to_string()))?
+            .trim();
+
+        Ok(first_index.to_string())
+    }
+
+    /// Rename a window in a session
+    #[allow(dead_code)]
+    pub fn rename_window(
+        session_name: &str,
+        window_target: &str,
+        new_name: &str,
+    ) -> Result<String> {
+        Self::rename_window_with_socket(session_name, window_target, new_name, None::<&Path>)
+    }
+
+    /// Rename a window in a session using a specific socket
+    #[allow(dead_code)]
+    pub fn rename_window_with_socket<P: AsRef<Path>>(
+        session_name: &str,
+        window_target: &str,
+        new_name: &str,
+        socket_path: Option<P>,
+    ) -> Result<String> {
+        let target = format!("{session_name}:{window_target}");
+        let mut cmd = Self::new()
+            .arg("rename-window")
+            .arg("-t")
+            .arg(target)
+            .arg(new_name);
+
         if let Some(socket) = socket_path {
             cmd = cmd.socket(socket);
         }
@@ -227,10 +345,11 @@ impl TmuxCommand {
         keys: &str,
         socket_path: Option<P>,
     ) -> Result<String> {
+        let target = format!("{session_name}:{window_name}");
         let mut cmd = Self::new()
             .arg("send-keys")
             .arg("-t")
-            .arg(format!("{session_name}:{window_name}"))
+            .arg(target)
             .arg(keys)
             .arg("Enter");
 
@@ -267,10 +386,11 @@ impl TmuxCommand {
         keys: &str,
         socket_path: Option<P>,
     ) -> Result<String> {
+        let target = format!("{session_name}:{window_name}.{pane_index}");
         let mut cmd = Self::new()
             .arg("send-keys")
             .arg("-t")
-            .arg(format!("{session_name}:{window_name}.{pane_index}"))
+            .arg(target)
             .arg(keys)
             .arg("Enter");
 
@@ -328,15 +448,16 @@ impl TmuxCommand {
         working_dir: Option<&Path>,
         socket_path: Option<P>,
     ) -> Result<String> {
+        let target = if window_name.is_empty() {
+            session_name.to_string()
+        } else {
+            format!("{session_name}:{window_name}")
+        };
         let mut cmd = Self::new()
             .arg("split-window")
             .arg("-h") // horizontal split (side by side)
             .arg("-t")
-            .arg(if window_name.is_empty() {
-                session_name.to_string()
-            } else {
-                format!("{session_name}:{window_name}")
-            });
+            .arg(&target);
 
         // Add working directory if provided
         if let Some(dir) = working_dir {

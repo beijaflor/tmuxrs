@@ -99,20 +99,40 @@ impl SessionManager {
         let root_path = Self::expand_path(root_dir)?;
         TmuxCommand::new_session_with_socket(&session_name, &root_path, self.socket_path.as_ref())?;
 
+        // Set 0-based indexing for both windows and panes (affects future windows/panes)
+        TmuxCommand::set_base_index_with_socket(&session_name, self.socket_path.as_ref())?;
+        TmuxCommand::set_pane_base_index_with_socket(&session_name, self.socket_path.as_ref())?;
+
         // Create windows
         for (index, window_config) in config.windows.iter().enumerate() {
             match window_config {
                 crate::config::WindowConfig::Simple(command) => {
-                    let window_name = format!("window-{}", index + 1);
-                    // Create window without command to allow proper shell initialization
-                    TmuxCommand::new_window_with_socket(
-                        &session_name,
-                        &window_name,
-                        None, // No command - let shell initialize properly
-                        Some(&root_path),
-                        self.socket_path.as_ref(),
-                    )?;
-                    // Send command after window is created
+                    let window_name = format!("window-{index}");
+
+                    if index == 0 {
+                        // Dynamically detect the initial window index (may vary by tmux version/config)
+                        let initial_window_index = TmuxCommand::get_first_window_index_with_socket(
+                            &session_name,
+                            self.socket_path.as_ref(),
+                        )?;
+                        TmuxCommand::rename_window_with_socket(
+                            &session_name,
+                            &initial_window_index,
+                            &window_name,
+                            self.socket_path.as_ref(),
+                        )?;
+                    } else {
+                        // Create additional windows (these will use 0-based indexing since base-index is set)
+                        TmuxCommand::new_window_with_socket(
+                            &session_name,
+                            &window_name,
+                            None, // No command - let shell initialize properly
+                            Some(&root_path),
+                            self.socket_path.as_ref(),
+                        )?;
+                    }
+
+                    // Send command to the window
                     if !command.trim().is_empty() {
                         TmuxCommand::send_keys_with_socket(
                             &session_name,
@@ -123,16 +143,32 @@ impl SessionManager {
                     }
                 }
                 crate::config::WindowConfig::Complex { window } => {
-                    for (window_name, command) in window {
-                        // Create window without command to allow proper shell initialization
-                        TmuxCommand::new_window_with_socket(
-                            &session_name,
-                            window_name,
-                            None, // No command - let shell initialize properly
-                            Some(&root_path),
-                            self.socket_path.as_ref(),
-                        )?;
-                        // Send command after window is created
+                    for (window_index, (window_name, command)) in window.iter().enumerate() {
+                        if index == 0 && window_index == 0 {
+                            // Dynamically detect the initial window index (may vary by tmux version/config)
+                            let initial_window_index =
+                                TmuxCommand::get_first_window_index_with_socket(
+                                    &session_name,
+                                    self.socket_path.as_ref(),
+                                )?;
+                            TmuxCommand::rename_window_with_socket(
+                                &session_name,
+                                &initial_window_index,
+                                window_name,
+                                self.socket_path.as_ref(),
+                            )?;
+                        } else {
+                            // Create additional windows (use 0-based indexing)
+                            TmuxCommand::new_window_with_socket(
+                                &session_name,
+                                window_name,
+                                None, // No command - let shell initialize properly
+                                Some(&root_path),
+                                self.socket_path.as_ref(),
+                            )?;
+                        }
+
+                        // Send command to the window
                         if !command.trim().is_empty() {
                             TmuxCommand::send_keys_with_socket(
                                 &session_name,
@@ -144,15 +180,30 @@ impl SessionManager {
                     }
                 }
                 crate::config::WindowConfig::WithLayout { window } => {
-                    for (window_name, layout_config) in window {
-                        // Create the window without command to allow proper shell initialization
-                        TmuxCommand::new_window_with_socket(
-                            &session_name,
-                            window_name,
-                            None, // No command - let shell initialize properly
-                            Some(&root_path),
-                            self.socket_path.as_ref(),
-                        )?;
+                    for (window_index, (window_name, layout_config)) in window.iter().enumerate() {
+                        if index == 0 && window_index == 0 {
+                            // Dynamically detect the initial window index (may vary by tmux version/config)
+                            let initial_window_index =
+                                TmuxCommand::get_first_window_index_with_socket(
+                                    &session_name,
+                                    self.socket_path.as_ref(),
+                                )?;
+                            TmuxCommand::rename_window_with_socket(
+                                &session_name,
+                                &initial_window_index,
+                                window_name,
+                                self.socket_path.as_ref(),
+                            )?;
+                        } else {
+                            // Create additional windows (use 0-based indexing)
+                            TmuxCommand::new_window_with_socket(
+                                &session_name,
+                                window_name,
+                                None, // No command - let shell initialize properly
+                                Some(&root_path),
+                                self.socket_path.as_ref(),
+                            )?;
+                        }
 
                         // Send first pane command if not empty
                         let first_pane = layout_config.panes.first().ok_or_else(|| {
@@ -161,9 +212,11 @@ impl SessionManager {
                             )
                         })?;
                         if !first_pane.trim().is_empty() {
-                            TmuxCommand::send_keys_with_socket(
+                            // Use precise pane targeting for first pane (index 0)
+                            TmuxCommand::send_keys_to_pane_with_socket(
                                 &session_name,
                                 window_name,
+                                0, // First pane is always index 0 with 0-based indexing
                                 first_pane,
                                 self.socket_path.as_ref(),
                             )?;
@@ -181,10 +234,11 @@ impl SessionManager {
                                 Some(&root_path),
                                 self.socket_path.as_ref(),
                             )?;
-                            // Send command to the new pane after it's created
-                            // Pane indices start at 0, first pane is 0, second is 1, etc.
-                            let target_pane_index = pane_index + 1; // +1 because we skipped the first pane
+
+                            // Send command to the new pane using precise pane targeting
                             if !pane_command.trim().is_empty() {
+                                // With 0-based indexing: first pane is 0, second is 1, third is 2, etc.
+                                let target_pane_index = pane_index + 1; // +1 because we skipped the first pane
                                 TmuxCommand::send_keys_to_pane_with_socket(
                                     &session_name,
                                     window_name,
