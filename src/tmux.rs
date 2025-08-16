@@ -222,9 +222,47 @@ impl TmuxCommand {
         cmd.execute()
     }
 
+    /// Get the index of the first (initial) window in a session
+    #[allow(dead_code)]
+    pub fn get_first_window_index(session_name: &str) -> Result<String> {
+        Self::get_first_window_index_with_socket(session_name, None::<&Path>)
+    }
+
+    /// Get the index of the first (initial) window in a session using a specific socket
+    #[allow(dead_code)]
+    pub fn get_first_window_index_with_socket<P: AsRef<Path>>(
+        session_name: &str,
+        socket_path: Option<P>,
+    ) -> Result<String> {
+        let mut cmd = Self::new()
+            .arg("list-windows")
+            .arg("-t")
+            .arg(session_name)
+            .arg("-F")
+            .arg("#{window_index}");
+
+        if let Some(socket) = socket_path {
+            cmd = cmd.socket(socket);
+        }
+
+        let output = cmd.execute()?;
+        // Get the first line (first window index)
+        let first_index = output
+            .lines()
+            .next()
+            .ok_or_else(|| TmuxrsError::TmuxError("No windows found in session".to_string()))?
+            .trim();
+        
+        Ok(first_index.to_string())
+    }
+
     /// Rename a window in a session
     #[allow(dead_code)]
-    pub fn rename_window(session_name: &str, window_target: &str, new_name: &str) -> Result<String> {
+    pub fn rename_window(
+        session_name: &str,
+        window_target: &str,
+        new_name: &str,
+    ) -> Result<String> {
         Self::rename_window_with_socket(session_name, window_target, new_name, None::<&Path>)
     }
 

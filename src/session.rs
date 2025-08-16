@@ -110,10 +110,16 @@ impl SessionManager {
                     let window_name = format!("window-{index}");
 
                     if index == 0 {
-                        // The initial window is always created at index 1 (default tmux behavior)
-                        // base-index 0 only affects new windows created after the setting
+                        // Dynamically detect the initial window index (may vary by tmux version/config)
+                        let initial_window_index = TmuxCommand::get_first_window_index_with_socket(
+                            &session_name,
+                            self.socket_path.as_ref(),
+                        )?;
                         TmuxCommand::rename_window_with_socket(
-                            &session_name, "1", &window_name, self.socket_path.as_ref()
+                            &session_name,
+                            &initial_window_index,
+                            &window_name,
+                            self.socket_path.as_ref(),
                         )?;
                     } else {
                         // Create additional windows (these will use 0-based indexing since base-index is set)
@@ -139,9 +145,16 @@ impl SessionManager {
                 crate::config::WindowConfig::Complex { window } => {
                     for (window_index, (window_name, command)) in window.iter().enumerate() {
                         if index == 0 && window_index == 0 {
-                            // The initial window is always at index 1, rename it deterministically
+                            // Dynamically detect the initial window index (may vary by tmux version/config)
+                            let initial_window_index = TmuxCommand::get_first_window_index_with_socket(
+                                &session_name,
+                                self.socket_path.as_ref(),
+                            )?;
                             TmuxCommand::rename_window_with_socket(
-                                &session_name, "1", window_name, self.socket_path.as_ref()
+                                &session_name,
+                                &initial_window_index,
+                                window_name,
+                                self.socket_path.as_ref(),
                             )?;
                         } else {
                             // Create additional windows (use 0-based indexing)
@@ -168,9 +181,16 @@ impl SessionManager {
                 crate::config::WindowConfig::WithLayout { window } => {
                     for (window_index, (window_name, layout_config)) in window.iter().enumerate() {
                         if index == 0 && window_index == 0 {
-                            // The initial window is always at index 1, rename it deterministically
+                            // Dynamically detect the initial window index (may vary by tmux version/config)
+                            let initial_window_index = TmuxCommand::get_first_window_index_with_socket(
+                                &session_name,
+                                self.socket_path.as_ref(),
+                            )?;
                             TmuxCommand::rename_window_with_socket(
-                                &session_name, "1", window_name, self.socket_path.as_ref()
+                                &session_name,
+                                &initial_window_index,
+                                window_name,
+                                self.socket_path.as_ref(),
                             )?;
                         } else {
                             // Create additional windows (use 0-based indexing)
