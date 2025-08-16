@@ -161,13 +161,7 @@ impl TmuxCommand {
             cmd = cmd.socket(socket);
         }
 
-        let result = cmd.execute()?;
-
-        // Apply 0-based indexing settings to ensure consistent behavior
-        Self::set_base_index_with_socket(session_name, socket_path.as_ref())?;
-        Self::set_pane_base_index_with_socket(session_name, socket_path.as_ref())?;
-
-        Ok(result)
+        cmd.execute()
     }
 
     /// Set base-index to 0 for a session
@@ -252,7 +246,7 @@ impl TmuxCommand {
             .next()
             .ok_or_else(|| TmuxrsError::TmuxError("No windows found in session".to_string()))?
             .trim();
-        
+
         Ok(first_index.to_string())
     }
 
