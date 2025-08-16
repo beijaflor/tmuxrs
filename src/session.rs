@@ -2,6 +2,8 @@ use crate::config::Config;
 use crate::error::{Result, TmuxrsError};
 use crate::tmux::TmuxCommand;
 use std::path::{Path, PathBuf};
+use std::thread;
+use std::time::Duration;
 
 /// Session manager for tmuxrs
 #[derive(Default)]
@@ -112,11 +114,16 @@ impl SessionManager {
                         Some(&root_path),
                         self.socket_path.as_ref(),
                     )?;
-                    // Send command after window is created
+
+                    // Brief delay to ensure window is fully initialized
+                    thread::sleep(Duration::from_millis(50));
+
+                    // Send command after window is created to specific pane 0
                     if !command.trim().is_empty() {
-                        TmuxCommand::send_keys_with_socket(
+                        TmuxCommand::send_keys_to_pane_with_socket(
                             &session_name,
                             &window_name,
+                            0, // Target pane 0 specifically
                             command,
                             self.socket_path.as_ref(),
                         )?;
@@ -132,11 +139,16 @@ impl SessionManager {
                             Some(&root_path),
                             self.socket_path.as_ref(),
                         )?;
-                        // Send command after window is created
+
+                        // Brief delay to ensure window is fully initialized
+                        thread::sleep(Duration::from_millis(50));
+
+                        // Send command after window is created to specific pane 0
                         if !command.trim().is_empty() {
-                            TmuxCommand::send_keys_with_socket(
+                            TmuxCommand::send_keys_to_pane_with_socket(
                                 &session_name,
                                 window_name,
+                                0, // Target pane 0 specifically
                                 command,
                                 self.socket_path.as_ref(),
                             )?;
@@ -154,6 +166,9 @@ impl SessionManager {
                             self.socket_path.as_ref(),
                         )?;
 
+                        // Brief delay to ensure window is fully initialized
+                        thread::sleep(Duration::from_millis(50));
+
                         // Send first pane command if not empty
                         let first_pane = layout_config.panes.first().ok_or_else(|| {
                             TmuxrsError::TmuxError(
@@ -161,9 +176,10 @@ impl SessionManager {
                             )
                         })?;
                         if !first_pane.trim().is_empty() {
-                            TmuxCommand::send_keys_with_socket(
+                            TmuxCommand::send_keys_to_pane_with_socket(
                                 &session_name,
                                 window_name,
+                                0, // Target pane 0 specifically
                                 first_pane,
                                 self.socket_path.as_ref(),
                             )?;
@@ -181,6 +197,10 @@ impl SessionManager {
                                 Some(&root_path),
                                 self.socket_path.as_ref(),
                             )?;
+
+                            // Brief delay to ensure pane is fully initialized
+                            thread::sleep(Duration::from_millis(50));
+
                             // Send command to the new pane after it's created
                             // Pane indices start at 0, first pane is 0, second is 1, etc.
                             let target_pane_index = pane_index + 1; // +1 because we skipped the first pane
