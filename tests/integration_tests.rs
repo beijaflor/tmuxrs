@@ -15,6 +15,7 @@ mod common;
 
 // Test modules organized by functionality
 mod cli;
+mod pane_config; // New module for enhanced pane configuration tests (Issue #18)
 mod session;
 mod shell;
 mod tmux;
