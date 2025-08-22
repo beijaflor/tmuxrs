@@ -56,17 +56,16 @@ impl PaneConfig {
                                 vec![cmd.clone()]
                             }
                         }
-                        serde_yaml::Value::Sequence(seq) => {
-                            seq.iter()
-                                .filter_map(|v| {
-                                    if let serde_yaml::Value::String(s) = v {
-                                        Some(s.clone())
-                                    } else {
-                                        None
-                                    }
-                                })
-                                .collect()
-                        }
+                        serde_yaml::Value::Sequence(seq) => seq
+                            .iter()
+                            .filter_map(|v| {
+                                if let serde_yaml::Value::String(s) = v {
+                                    Some(s.clone())
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect(),
                         _ => vec![],
                     }
                 } else {
@@ -78,16 +77,16 @@ impl PaneConfig {
     }
 
     /// Check if this pane configuration should not execute any commands
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.commands().is_empty()
     }
 
     /// Get the name of a named pane, if any
+    #[allow(dead_code)]
     pub fn name(&self) -> Option<String> {
         match self {
-            PaneConfig::Named(map) => {
-                map.keys().next().map(|k| k.clone())
-            }
+            PaneConfig::Named(map) => map.keys().next().cloned(),
             _ => None,
         }
     }
@@ -297,13 +296,13 @@ panes:
   - ""
   - top
 "#;
-        
+
         let layout_config: WindowLayout = serde_yaml::from_str(yaml_content).unwrap();
         assert_eq!(layout_config.panes.len(), 3);
-        
+
         // Second pane should be empty string
         match &layout_config.panes[1] {
-            PaneConfig::Simple(cmd) if cmd.is_empty() => {}, // Expected
+            PaneConfig::Simple(cmd) if cmd.is_empty() => {} // Expected
             _ => panic!("Expected empty string pane config for empty string"),
         }
     }
@@ -317,13 +316,13 @@ panes:
   - ~
   - top
 "#;
-        
+
         let layout_config: WindowLayout = serde_yaml::from_str(yaml_content).unwrap();
         assert_eq!(layout_config.panes.len(), 3);
-        
+
         // Second pane should be null
         match &layout_config.panes[1] {
-            PaneConfig::Null => {}, // Expected  
+            PaneConfig::Null => {} // Expected
             _ => panic!("Expected null pane config for null value"),
         }
     }
@@ -336,10 +335,10 @@ panes:
   - editor: vim
   - console: bash
 "#;
-        
+
         let layout_config: WindowLayout = serde_yaml::from_str(yaml_content).unwrap();
         assert_eq!(layout_config.panes.len(), 2);
-        
+
         // First pane should be named "editor" with command "vim"
         match &layout_config.panes[0] {
             PaneConfig::Named(map) => {
@@ -351,7 +350,7 @@ panes:
                 } else {
                     panic!("Expected string command");
                 }
-            },
+            }
             _ => panic!("Expected named pane config"),
         }
     }
@@ -364,10 +363,10 @@ panes:
   - editor: vim
   - console: ""
 "#;
-        
+
         let layout_config: WindowLayout = serde_yaml::from_str(yaml_content).unwrap();
         assert_eq!(layout_config.panes.len(), 2);
-        
+
         // Second pane should be named "console" with empty command
         match &layout_config.panes[1] {
             PaneConfig::Named(map) => {
@@ -379,7 +378,7 @@ panes:
                 } else {
                     panic!("Expected string command");
                 }
-            },
+            }
             _ => panic!("Expected named pane config with empty command"),
         }
     }
@@ -392,17 +391,17 @@ panes:
   - vim
   - [cd frontend, npm start]
 "#;
-        
+
         let layout_config: WindowLayout = serde_yaml::from_str(yaml_content).unwrap();
         assert_eq!(layout_config.panes.len(), 2);
-        
+
         // Second pane should be multiple commands
         match &layout_config.panes[1] {
             PaneConfig::Multiple(commands) => {
                 assert_eq!(commands.len(), 2);
                 assert_eq!(commands[0], "cd frontend");
                 assert_eq!(commands[1], "npm start");
-            },
+            }
             _ => panic!("Expected multiple commands pane config"),
         }
     }
@@ -415,10 +414,10 @@ panes:
   - editor: vim
   - server: [cd backend, rails server]
 "#;
-        
+
         let layout_config: WindowLayout = serde_yaml::from_str(yaml_content).unwrap();
         assert_eq!(layout_config.panes.len(), 2);
-        
+
         // Second pane should be named with multiple commands
         match &layout_config.panes[1] {
             PaneConfig::Named(map) => {
@@ -427,8 +426,9 @@ panes:
                 assert_eq!(name, "server");
                 if let serde_yaml::Value::Sequence(commands) = value {
                     assert_eq!(commands.len(), 2);
-                    if let (serde_yaml::Value::String(cmd1), serde_yaml::Value::String(cmd2)) = 
-                       (&commands[0], &commands[1]) {
+                    if let (serde_yaml::Value::String(cmd1), serde_yaml::Value::String(cmd2)) =
+                        (&commands[0], &commands[1])
+                    {
                         assert_eq!(cmd1, "cd backend");
                         assert_eq!(cmd2, "rails server");
                     } else {
@@ -437,7 +437,7 @@ panes:
                 } else {
                     panic!("Expected sequence of commands");
                 }
-            },
+            }
             _ => panic!("Expected named multiple commands pane config"),
         }
     }
@@ -451,21 +451,21 @@ panes:
   - npm start
   - top
 "#;
-        
+
         let layout_config: WindowLayout = serde_yaml::from_str(yaml_content).unwrap();
         assert_eq!(layout_config.panes.len(), 3);
-        
+
         // All panes should parse as simple commands (backward compatibility)
         match &layout_config.panes[0] {
             PaneConfig::Simple(cmd) => assert_eq!(cmd, "vim"),
             _ => panic!("Expected simple pane config for backward compatibility"),
         }
-        
+
         match &layout_config.panes[1] {
             PaneConfig::Simple(cmd) => assert_eq!(cmd, "npm start"),
             _ => panic!("Expected simple pane config for backward compatibility"),
         }
-        
+
         match &layout_config.panes[2] {
             PaneConfig::Simple(cmd) => assert_eq!(cmd, "top"),
             _ => panic!("Expected simple pane config for backward compatibility"),
@@ -497,25 +497,28 @@ panes:
     #[test]
     fn test_pane_config_commands_named_single() {
         let mut map = std::collections::HashMap::new();
-        map.insert("editor".to_string(), serde_yaml::Value::String("vim".to_string()));
+        map.insert(
+            "editor".to_string(),
+            serde_yaml::Value::String("vim".to_string()),
+        );
         let pane = PaneConfig::Named(map);
-        
+
         assert_eq!(pane.commands(), vec!["vim"]);
         assert_eq!(pane.name(), Some("editor".to_string()));
     }
 
-    #[test] 
+    #[test]
     fn test_pane_config_commands_named_multiple() {
         let mut map = std::collections::HashMap::new();
         map.insert(
-            "server".to_string(), 
+            "server".to_string(),
             serde_yaml::Value::Sequence(vec![
                 serde_yaml::Value::String("cd backend".to_string()),
                 serde_yaml::Value::String("rails server".to_string()),
-            ])
+            ]),
         );
         let pane = PaneConfig::Named(map);
-        
+
         assert_eq!(pane.commands(), vec!["cd backend", "rails server"]);
         assert_eq!(pane.name(), Some("server".to_string()));
     }
