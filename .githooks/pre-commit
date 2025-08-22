@@ -4,13 +4,28 @@ set -eu
 
 echo "Running pre-commit checks..."
 
-# Check formatting
+# Stash unstaged changes to preserve developer's work
+stash_name="pre-commit-stash-$$"
+git stash push -k -u -m "$stash_name" >/dev/null || true
+
+# Cleanup function to restore stash on any exit
+cleanup_stash() {
+    if git stash list | grep -q "$stash_name"; then
+        git stash pop --quiet >/dev/null || true
+    fi
+}
+
+# Set up EXIT trap to ensure stash is always restored
+trap cleanup_stash EXIT
+
+# Check formatting and auto-fix if needed
 echo "Checking code formatting..."
 if ! cargo fmt -- --check
 then
-    echo "❌ Code formatting issues detected!"
-    echo "Run 'cargo fmt' to fix formatting issues."
-    exit 1
+    echo "Auto-fixing code formatting..."
+    cargo fmt
+    git add -u  # Stage formatting fixes
+    echo "✅ Code formatting fixed and staged"
 fi
 
 # Run clippy
