@@ -211,7 +211,7 @@ impl SessionManager {
                                 "Window layout must have at least one pane".to_string(),
                             )
                         })?;
-                        
+
                         let first_pane_commands = first_pane.commands();
                         for command in first_pane_commands {
                             // Use precise pane targeting for first pane (index 0)

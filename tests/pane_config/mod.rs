@@ -15,7 +15,7 @@ fn test_empty_panes_create_shell_only() {
     }
 
     let session = TmuxTestSession::new("empty-panes-test");
-    
+
     // Create config with empty panes
     let config_content = r#"
 name: empty-panes-test
@@ -75,7 +75,7 @@ fn test_named_panes_with_commands() {
     }
 
     let session = TmuxTestSession::new("named-panes-test");
-    
+
     // Create config with named panes
     let config_content = r#"
 name: named-panes-test
@@ -131,7 +131,7 @@ fn test_multiple_commands_sequential_execution() {
     }
 
     let session = TmuxTestSession::new("multi-commands-test");
-    
+
     // Create config with multiple commands per pane
     let config_content = r#"
 name: multi-commands-test
@@ -187,7 +187,7 @@ fn test_mixed_pane_configurations() {
     }
 
     let session = TmuxTestSession::new("mixed-panes-test");
-    
+
     // Create config with all different pane types in one window
     let config_content = r#"
 name: mixed-panes-test
