@@ -25,9 +25,77 @@ pub enum WindowConfig {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum PaneConfig {
+    Multiple(Vec<String>),
+    Named(std::collections::HashMap<String, serde_yaml::Value>),
+    Simple(String),
+    Null,
+}
+
+impl PaneConfig {
+    /// Extract commands from this pane configuration
+    pub fn commands(&self) -> Vec<String> {
+        match self {
+            PaneConfig::Simple(cmd) => {
+                if cmd.trim().is_empty() {
+                    vec![]
+                } else {
+                    vec![cmd.clone()]
+                }
+            }
+            PaneConfig::Multiple(cmds) => cmds.clone(),
+            PaneConfig::Named(map) => {
+                // Extract commands from the named pane
+                if let Some((_, value)) = map.iter().next() {
+                    match value {
+                        serde_yaml::Value::String(cmd) => {
+                            if cmd.trim().is_empty() {
+                                vec![]
+                            } else {
+                                vec![cmd.clone()]
+                            }
+                        }
+                        serde_yaml::Value::Sequence(seq) => seq
+                            .iter()
+                            .filter_map(|v| {
+                                if let serde_yaml::Value::String(s) = v {
+                                    Some(s.clone())
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect(),
+                        _ => vec![],
+                    }
+                } else {
+                    vec![]
+                }
+            }
+            PaneConfig::Null => vec![],
+        }
+    }
+
+    /// Check if this pane configuration should not execute any commands
+    #[allow(dead_code)]
+    pub fn is_empty(&self) -> bool {
+        self.commands().is_empty()
+    }
+
+    /// Get the name of a named pane, if any
+    #[allow(dead_code)]
+    pub fn name(&self) -> Option<String> {
+        match self {
+            PaneConfig::Named(map) => map.keys().next().cloned(),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WindowLayout {
     pub layout: Option<String>,
-    pub panes: Vec<String>,
+    pub panes: Vec<PaneConfig>,
 }
 
 impl Config {
@@ -216,5 +284,250 @@ windows:
 
         let detected = Config::detect_session_name(None).unwrap();
         assert_eq!(detected, expected_name);
+    }
+
+    // TDD: Failing tests for enhanced pane configuration
+    #[test]
+    fn test_parse_empty_pane_as_empty_string() {
+        let yaml_content = r#"
+layout: main-vertical
+panes:
+  - vim
+  - ""
+  - top
+"#;
+
+        let layout_config: WindowLayout = serde_yaml::from_str(yaml_content).unwrap();
+        assert_eq!(layout_config.panes.len(), 3);
+
+        // Second pane should be empty string
+        match &layout_config.panes[1] {
+            PaneConfig::Simple(cmd) if cmd.is_empty() => {} // Expected
+            _ => panic!("Expected empty string pane config for empty string"),
+        }
+    }
+
+    #[test]
+    fn test_parse_empty_pane_as_null() {
+        let yaml_content = r#"
+layout: main-vertical
+panes:
+  - vim
+  - ~
+  - top
+"#;
+
+        let layout_config: WindowLayout = serde_yaml::from_str(yaml_content).unwrap();
+        assert_eq!(layout_config.panes.len(), 3);
+
+        // Second pane should be null
+        match &layout_config.panes[1] {
+            PaneConfig::Null => {} // Expected
+            _ => panic!("Expected null pane config for null value"),
+        }
+    }
+
+    #[test]
+    fn test_parse_named_pane_single_command() {
+        let yaml_content = r#"
+layout: main-vertical
+panes:
+  - editor: vim
+  - console: bash
+"#;
+
+        let layout_config: WindowLayout = serde_yaml::from_str(yaml_content).unwrap();
+        assert_eq!(layout_config.panes.len(), 2);
+
+        // First pane should be named "editor" with command "vim"
+        match &layout_config.panes[0] {
+            PaneConfig::Named(map) => {
+                assert_eq!(map.len(), 1);
+                let (name, value) = map.iter().next().unwrap();
+                assert_eq!(name, "editor");
+                if let serde_yaml::Value::String(cmd) = value {
+                    assert_eq!(cmd, "vim");
+                } else {
+                    panic!("Expected string command");
+                }
+            }
+            _ => panic!("Expected named pane config"),
+        }
+    }
+
+    #[test]
+    fn test_parse_named_pane_empty_command() {
+        let yaml_content = r#"
+layout: main-vertical
+panes:
+  - editor: vim
+  - console: ""
+"#;
+
+        let layout_config: WindowLayout = serde_yaml::from_str(yaml_content).unwrap();
+        assert_eq!(layout_config.panes.len(), 2);
+
+        // Second pane should be named "console" with empty command
+        match &layout_config.panes[1] {
+            PaneConfig::Named(map) => {
+                assert_eq!(map.len(), 1);
+                let (name, value) = map.iter().next().unwrap();
+                assert_eq!(name, "console");
+                if let serde_yaml::Value::String(cmd) = value {
+                    assert_eq!(cmd, "");
+                } else {
+                    panic!("Expected string command");
+                }
+            }
+            _ => panic!("Expected named pane config with empty command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_multiple_commands_array() {
+        let yaml_content = r#"
+layout: main-vertical
+panes:
+  - vim
+  - [cd frontend, npm start]
+"#;
+
+        let layout_config: WindowLayout = serde_yaml::from_str(yaml_content).unwrap();
+        assert_eq!(layout_config.panes.len(), 2);
+
+        // Second pane should be multiple commands
+        match &layout_config.panes[1] {
+            PaneConfig::Multiple(commands) => {
+                assert_eq!(commands.len(), 2);
+                assert_eq!(commands[0], "cd frontend");
+                assert_eq!(commands[1], "npm start");
+            }
+            _ => panic!("Expected multiple commands pane config"),
+        }
+    }
+
+    #[test]
+    fn test_parse_named_pane_multiple_commands() {
+        let yaml_content = r#"
+layout: main-vertical
+panes:
+  - editor: vim
+  - server: [cd backend, rails server]
+"#;
+
+        let layout_config: WindowLayout = serde_yaml::from_str(yaml_content).unwrap();
+        assert_eq!(layout_config.panes.len(), 2);
+
+        // Second pane should be named with multiple commands
+        match &layout_config.panes[1] {
+            PaneConfig::Named(map) => {
+                assert_eq!(map.len(), 1);
+                let (name, value) = map.iter().next().unwrap();
+                assert_eq!(name, "server");
+                if let serde_yaml::Value::Sequence(commands) = value {
+                    assert_eq!(commands.len(), 2);
+                    if let (serde_yaml::Value::String(cmd1), serde_yaml::Value::String(cmd2)) =
+                        (&commands[0], &commands[1])
+                    {
+                        assert_eq!(cmd1, "cd backend");
+                        assert_eq!(cmd2, "rails server");
+                    } else {
+                        panic!("Expected string commands");
+                    }
+                } else {
+                    panic!("Expected sequence of commands");
+                }
+            }
+            _ => panic!("Expected named multiple commands pane config"),
+        }
+    }
+
+    #[test]
+    fn test_backward_compatibility_simple_strings() {
+        let yaml_content = r#"
+layout: main-vertical
+panes:
+  - vim
+  - npm start
+  - top
+"#;
+
+        let layout_config: WindowLayout = serde_yaml::from_str(yaml_content).unwrap();
+        assert_eq!(layout_config.panes.len(), 3);
+
+        // All panes should parse as simple commands (backward compatibility)
+        match &layout_config.panes[0] {
+            PaneConfig::Simple(cmd) => assert_eq!(cmd, "vim"),
+            _ => panic!("Expected simple pane config for backward compatibility"),
+        }
+
+        match &layout_config.panes[1] {
+            PaneConfig::Simple(cmd) => assert_eq!(cmd, "npm start"),
+            _ => panic!("Expected simple pane config for backward compatibility"),
+        }
+
+        match &layout_config.panes[2] {
+            PaneConfig::Simple(cmd) => assert_eq!(cmd, "top"),
+            _ => panic!("Expected simple pane config for backward compatibility"),
+        }
+    }
+
+    // TDD: Tests for PaneConfig helper methods
+    #[test]
+    fn test_pane_config_commands_simple() {
+        let pane = PaneConfig::Simple("vim".to_string());
+        assert_eq!(pane.commands(), vec!["vim"]);
+
+        let empty_pane = PaneConfig::Simple("".to_string());
+        assert_eq!(empty_pane.commands(), Vec::<String>::new());
+    }
+
+    #[test]
+    fn test_pane_config_commands_multiple() {
+        let pane = PaneConfig::Multiple(vec!["cd frontend".to_string(), "npm start".to_string()]);
+        assert_eq!(pane.commands(), vec!["cd frontend", "npm start"]);
+    }
+
+    #[test]
+    fn test_pane_config_commands_null() {
+        let pane = PaneConfig::Null;
+        assert_eq!(pane.commands(), Vec::<String>::new());
+    }
+
+    #[test]
+    fn test_pane_config_commands_named_single() {
+        let mut map = std::collections::HashMap::new();
+        map.insert(
+            "editor".to_string(),
+            serde_yaml::Value::String("vim".to_string()),
+        );
+        let pane = PaneConfig::Named(map);
+
+        assert_eq!(pane.commands(), vec!["vim"]);
+        assert_eq!(pane.name(), Some("editor".to_string()));
+    }
+
+    #[test]
+    fn test_pane_config_commands_named_multiple() {
+        let mut map = std::collections::HashMap::new();
+        map.insert(
+            "server".to_string(),
+            serde_yaml::Value::Sequence(vec![
+                serde_yaml::Value::String("cd backend".to_string()),
+                serde_yaml::Value::String("rails server".to_string()),
+            ]),
+        );
+        let pane = PaneConfig::Named(map);
+
+        assert_eq!(pane.commands(), vec!["cd backend", "rails server"]);
+        assert_eq!(pane.name(), Some("server".to_string()));
+    }
+
+    #[test]
+    fn test_pane_config_is_empty() {
+        assert!(PaneConfig::Simple("".to_string()).is_empty());
+        assert!(PaneConfig::Null.is_empty());
+        assert!(!PaneConfig::Simple("vim".to_string()).is_empty());
+        assert!(!PaneConfig::Multiple(vec!["test".to_string()]).is_empty());
     }
 }
